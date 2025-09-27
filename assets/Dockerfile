@@ -29,7 +29,7 @@ RUN pip install --upgrade pip &&\
     pip install MineStudio && \
     python -m minestudio.simulator.entry -y
 
-RUN git clone https://github.com/n1n1n1q/alex.git
+RUN git clone -b rl/setup https://github.com/n1n1n1q/alex.git /alex
 
 WORKDIR /alex
-RUN git switch rl/setup
+

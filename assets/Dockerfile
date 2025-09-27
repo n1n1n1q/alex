@@ -31,5 +31,5 @@ RUN pip install --upgrade pip &&\
 
 RUN git clone https://github.com/n1n1n1q/alex.git
 
-WORKDIR /alex && \
-    git switch rl/setup
+WORKDIR /alex
+RUN git switch rl/setup

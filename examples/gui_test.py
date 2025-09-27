@@ -3,18 +3,14 @@ from minestudio.simulator.callbacks import PlayCallback
 
 sim = MinecraftSim(
     action_type="env",
-    callbacks=[
-        PlayCallback()
-    ]
+    callbacks=[PlayCallback()]
 )
 
 obs, info = sim.reset()
-terminated = False
+terminated, truncated = False, False
 
-while not terminated:
+while not (terminated or truncated):
     action = None
-    # obs, reward, terminated, info = sim.step(action)
-    result = sim.step(action)
-    print(result)
+    obs, reward, terminated, truncated, info = sim.step(action)
 
 sim.close()

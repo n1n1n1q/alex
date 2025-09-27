@@ -13,6 +13,8 @@ terminated = False
 
 while not terminated:
     action = None
-    obs, reward, terminated, info = sim.step(action)
+    # obs, reward, terminated, info = sim.step(action)
+    result = sim.step(action)
+    print(result)
 
 sim.close()

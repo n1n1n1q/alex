@@ -25,8 +25,8 @@ RUN apt-get update && \
     unzip \
     openjdk-8-jdk
 
-RUN pip install --upgrade pip &&\
-    pip install MineStudio && \
+RUN pip install --upgrade pip && \
+    pip install git+https://github.com/annastasyshyn/MineStudio.git@master && \
     python -m minestudio.simulator.entry -y
 
 RUN git clone -b rl/setup https://github.com/n1n1n1q/alex.git /alex

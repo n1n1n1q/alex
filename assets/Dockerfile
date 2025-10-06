@@ -23,13 +23,33 @@ RUN apt-get update && \
     libxrender1 \
     libxext6 \
     unzip \
-    openjdk-8-jdk
+    openjdk-8-jdk \
+    ca-certificates \ 
+    curl \
+    gnupg \
+    lsb-release
+
+
 
 RUN pip install --upgrade pip && \
     pip install git+https://github.com/annastasyshyn/MineStudio.git@master && \
     python -m minestudio.simulator.entry -y
 
 RUN git clone -b rl/setup https://github.com/n1n1n1q/alex.git /alex
+
+RUN mkdir -p /etc/apt/keyrings
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+RUN echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+RUN apt-get update && apt-get install -y \
+    docker-ce \
+    docker-ce-cli \
+    containerd.io \
+    docker-buildx-plugin \
+    docker-compose-plugin \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /alex
 

@@ -4,10 +4,10 @@ from omegaconf import OmegaConf
 
 
 def policy_generator():
-    from minestudio.models.openai_vpt.body import load_openai_policy
-    model_path = 'pretrained/foundation-model-2x.model'
-    weights_path = 'pretrained/bc-from-early-game-2x.weights'
-    policy = load_openai_policy(model_path, weights_path)
+    from minestudio.models.vpt.body import load_vpt_policy
+    model_path = '/alex/models/foundation-2x'
+    weights_path = '/alex/models/foundation-2x/model.safetensors'
+    policy = load_vpt_policy(model_path, None)
     return policy
 
 
@@ -55,8 +55,8 @@ online_dict = {
  "trainer_name": "PPOTrainer",
     "detach_rollout_manager": True,
     "rollout_config": {
-        "num_rollout_workers": 2,
-        "num_gpus_per_worker": 1.0,
+    "num_rollout_workers": 1,
+    "num_gpus_per_worker": 0,
         "num_cpus_per_worker": 1,
         "fragment_length": 256,
         "to_send_queue_size": 6,
@@ -81,8 +81,9 @@ online_dict = {
         "episode_statistics_config": {},
     },
     "train_config": {
-        "num_workers": 2,
-        "num_gpus_per_worker": 1.0,
+    "num_workers": 1,
+    "num_gpus_per_worker": 0,
+        "num_cpus_per_worker": 1,
         "num_iterations": 4000,
         "vf_warmup": 0,
         "learning_rate": 0.00002,
@@ -117,7 +118,8 @@ online_dict = {
         "fix_decoder": False,
         "resume": None, 
         "resume_optimizer": True,
-        "save_path": "output"
+        "save_path": "output",
+        "use_amp": True,
     },
 
     "logger_config": {
@@ -129,7 +131,7 @@ online_dict = {
 
 if __name__ == "__main__":
 
-    with open("/alex/examples/train_test.py", 'r', encoding="utf8") as f:
+    with open("/alex/examples/training/test_train.py", 'r', encoding="utf8") as f:
         whole_config = f.read()
 
     online_config = OmegaConf.create(online_dict)

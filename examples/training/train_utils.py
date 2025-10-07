@@ -1,11 +1,12 @@
 
 
 def policy_generator():
-    from minestudio.models.vpt.body import load_vpt_policy
-    model_path = '/alex/models/foundation-2x'
-    weights_path = '/alex/models/foundation-2x/model.safetensors'
-    policy = load_vpt_policy(model_path, None)
-    return policy
+    from minestudio.models.vpt.body import VPTPolicy #load_vpt_policy
+    # model_path = '/alex/models/foundation-2x'
+    # weights_path = '/alex/models/foundation-2x/model.safetensors'
+    # policy = load_vpt_policy(model_path, None)
+    # return policy
+    return VPTPolicy.from_pretrained("CraftJarvis/MineStudio_VPT.foundation_model_2x")
 
 
 def env_generator():

@@ -5,11 +5,15 @@ IMAGE_NAME=alex-rl:latest
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 CONTAINER_NAME=alex_devenv
 
-ENV_LOCATION=../.env
+ENV_LOCATION=.env
 
 USER_ID=$(id -u)
 GROUP_ID=$(id -g)
 USERNAME=alex_dev
+
+MEMORY=${1:-10g}
+MEMORY_SWAP=${2:-11g}
+CPU=${3:-4}
 
 welcome=$(cat docker/welcome.txt)
 
@@ -23,23 +27,26 @@ if $RESET_CONTAINER; then
     docker rm -f ${CONTAINER_NAME} >/dev/null 2>&1 || true
 fi
 
+xhost +local:docker
+
 docker run -it --rm \
     --gpus all \
+    --cpus 4 \
     --ipc=host \
-    --ulimit memlock=-1 \
-    --ulimit stack=67108864 \
     --name ${CONTAINER_NAME} \
     -p 8888:8888 \
     -p 6006:6006 \
     -p 9899:9899 \
     -v ${REPO_ROOT}:/alex \
+    -e DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
     -w /alex \
+    --user root \
+    --memory ${MEMORY} \
+    --memory-swap ${MEMORY_SWAP} \
     ${IMAGE_NAME} \
     bash -c "
-        getent group ${GROUP_ID} || groupadd -g ${GROUP_ID} ${USERNAME}
-        id -u ${USER_ID} >/dev/null 2>&1 || useradd -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/bash ${USERNAME}
-        clear
         echo '${welcome}'
-        export '${ENV_LOCATION}' && set -a && source ${ENV_LOCATION} && set +a
-        exec su ${USERNAME} -c '/bin/bash'
+        set -a && source ${ENV_LOCATION} && set +a
+        /bin/bash
     "

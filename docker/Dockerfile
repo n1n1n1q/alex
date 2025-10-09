@@ -27,8 +27,8 @@ RUN apt-get update && \
     ca-certificates \ 
     curl \
     gnupg \
-    lsb-release
-
+    lsb-release \ 
+    flite 
 
 
 RUN pip install --upgrade pip && \
@@ -50,6 +50,8 @@ RUN apt-get update && apt-get install -y \
     docker-buildx-plugin \
     docker-compose-plugin \
     && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install sudo
 
 WORKDIR /alex
 

@@ -9,33 +9,33 @@ online_dict = {
     "detach_rollout_manager": True,
     "rollout_config": {
     "num_rollout_workers": 1,
-    "num_gpus_per_worker": 0,
-        "num_cpus_per_worker": 1,
-        "fragment_length": 256,
-        "to_send_queue_size": 6,
-        "worker_config": {
-            "num_envs": 12,
-            "batch_size": 6,
-            "restart_interval": 3600,  # 1h
-            "video_fps": 20,
-            "video_output_dir": "output/videos",
+    "num_gpus_per_worker": 1,
+    "num_cpus_per_worker": 1,
+    "fragment_length": 256,
+    "to_send_queue_size": 6,
+    "worker_config": {
+        "num_envs": 2,
+        "batch_size": 2,
+        "restart_interval": 180,  # 1h
+        "video_fps": 20,
+        "video_output_dir": "output/videos",
+    },
+    "replay_buffer_config": {
+        "max_chunks": 64,
+        "max_reuse": 2,
+        "max_staleness": 2,
+        "fragments_per_report": 40,
+        "fragments_per_chunk": 1,
+        "database_config": {
+            "path": "output/replay_buffer_cache",
+            "num_shards": 8,
         },
-        "replay_buffer_config": {
-            "max_chunks": 4800,
-            "max_reuse": 2,
-            "max_staleness": 2,
-            "fragments_per_report": 40,
-            "fragments_per_chunk": 1,
-            "database_config": {
-                "path": "output/replay_buffer_cache",
-                "num_shards": 8,
-            },
-        },
-        "episode_statistics_config": {},
+    },
+    "episode_statistics_config": {},
     },
     "train_config": {
-    "num_workers": 1,
-    "num_gpus_per_worker": 0,
+        "num_workers": 1,
+        "num_gpus_per_worker": 0,
         "num_cpus_per_worker": 1,
         "num_iterations": 4000,
         "vf_warmup": 0,

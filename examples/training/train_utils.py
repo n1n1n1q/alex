@@ -17,7 +17,8 @@ def env_generator():
         RewardsCallback, 
         CommandsCallback, 
         JudgeResetCallback,
-        FastResetCallback
+        FastResetCallback,
+        RecordCallback
     )
     sim = MinecraftSim(
         obs_size=(128, 128), 

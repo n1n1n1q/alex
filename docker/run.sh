@@ -31,7 +31,7 @@ xhost +local:docker
 
 docker run -it --rm \
     --gpus all \
-    --cpus 4 \
+    --cpus ${CPU} \
     --ipc=host \
     --name ${CONTAINER_NAME} \
     -p 8888:8888 \

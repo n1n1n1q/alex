@@ -32,7 +32,7 @@ def env_generator():
                 'event': 'kill_entity', 
                 'objects': ['cow'], 
                 'reward': 1.0, 
-                'identity': 'chop_tree', 
+                'identity': 'kill_cow', 
                 'max_reward_times': 30, 
             }]),
             CommandsCallback(commands=[

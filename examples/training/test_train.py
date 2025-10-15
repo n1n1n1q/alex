@@ -16,7 +16,7 @@ online_dict = {
     "worker_config": {
         "num_envs": 2,
         "batch_size": 2,
-        "restart_interval": 180,  # 1h
+        "restart_interval": 60,  # 1h
         "video_fps": 20,
         "video_output_dir": "output/videos",
     },
@@ -37,10 +37,10 @@ online_dict = {
         "num_workers": 1,
         "num_gpus_per_worker": 0,
         "num_cpus_per_worker": 1,
-        "num_iterations": 4000,
+        "num_iterations": 100,
         "vf_warmup": 0,
         "learning_rate": 0.00002,
-        "anneal_lr_linearly": "",
+        "anneal_lr_linearly": False,
         "weight_decay": 0.04,
         "adam_eps": 1e-8,
         "batch_size_per_gpu": 1,

@@ -36,15 +36,17 @@ def env_generator():
                 'max_reward_times': 30, 
             }]),
             CommandsCallback(commands=[
-                '/give @p minecraft:iron_sword 1',
-                '/give @p minecraft:diamond 64',
-                '/effect @p 5 9999 255 true',
+                # '/give @p minecraft:iron_sword 1',
+                # '/give @p minecraft:diamond 64',
+                # '/effect @p 5 9999 255 true',
+                '/effect clear @p',
             ]),
             FastResetCallback(
                 biomes=['plains'],
                 random_tp_range=1000,
             ),
             JudgeResetCallback(600),
+            RecordCallback('./records/train_cow'),
         ]
     )
     return sim

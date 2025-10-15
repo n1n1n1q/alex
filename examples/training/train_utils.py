@@ -26,7 +26,7 @@ def env_generator():
         action_type = "agent",
         timestep_limit=1000,
         callbacks=[
-            SummonMobsCallback([{'name': 'cow', 'number': 10, 'range_x': [-5, 5], 'range_z': [-5, 5]}]),
+            SummonMobsCallback([{'name': 'cow', 'number': 10, 'range_x': [-15, 15], 'range_z': [-15, 15]}]),
             MaskActionsCallback(inventory=0), 
             RewardsCallback([{
                 'event': 'kill_entity', 

@@ -20,6 +20,7 @@ def env_generator():
         FastResetCallback,
         RecordCallback,
         HardResetCallback,
+        BarrierBoxCallback,
     )
     sim = MinecraftSim(
         obs_size=(128, 128), 
@@ -27,7 +28,8 @@ def env_generator():
         action_type = "agent",
         timestep_limit=1000,
         callbacks=[
-            HardResetCallback(),
+            HardResetCallback(spawn_positions=[{"seed": 123, "position": [0, 64, 0]}]),
+            BarrierBoxCallback(size=25, height=10, block_type='bedrock'),
             SummonMobsCallback([{'name': 'cow', 'number': 20, 'range_x': [-10, 10], 'range_z': [-10, 10]}]),
             MaskActionsCallback(inventory=0), 
             RewardsCallback([

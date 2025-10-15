@@ -18,7 +18,8 @@ def env_generator():
         CommandsCallback, 
         JudgeResetCallback,
         FastResetCallback,
-        RecordCallback
+        RecordCallback,
+        HardResetCallback,
     )
     sim = MinecraftSim(
         obs_size=(128, 128), 
@@ -26,6 +27,7 @@ def env_generator():
         action_type = "agent",
         timestep_limit=1000,
         callbacks=[
+            HardResetCallback(),
             SummonMobsCallback([{'name': 'cow', 'number': 20, 'range_x': [-10, 10], 'range_z': [-10, 10]}]),
             MaskActionsCallback(inventory=0), 
             RewardsCallback([
@@ -43,7 +45,7 @@ def env_generator():
                 'identity': 'damage_cow',
                 'max_reward_times': 500,
             }
-        ])
+            ]),
             CommandsCallback(commands=[
                 '/give @p minecraft:netherite_sword 1',
                 # '/give @p minecraft:diamond 64',

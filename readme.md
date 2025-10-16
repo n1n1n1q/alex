@@ -12,5 +12,5 @@ chmod +x docker/build.sh
   
 ```bash
 chmod +x docker/run.sh
-./run.sh {--reset/-r to reset the environment}
+./docker/run.sh {--reset/-r to reset the environment}
 ```

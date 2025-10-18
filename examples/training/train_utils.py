@@ -37,7 +37,7 @@ def env_generator():
             {
                 'event': 'kill_entity', 
                 'objects': ['cow'], 
-                'reward': 10.0,
+                'reward': 15.0,
                 'identity': 'kill_cow', 
                 'max_reward_times': 50, 
             },
@@ -55,17 +55,17 @@ def env_generator():
                 'identity': 'pickup_cow_drops',
                 'max_reward_times': 100,
             },
-            {
-                'event': 'mobs',
-                'objects': ['cow'], 
-                'reward': -0.1,
-                'identity': 'see_cow', 
-                'max_reward_times': 500, 
-            },
+            # {
+            #     'event': 'mobs',
+            #     'objects': ['cow'], 
+            #     'reward': -0.1,
+            #     'identity': 'see_cow', 
+            #     'max_reward_times': 500, 
+            # },
             {   
                 'event': 'mine_block',
                 'objects': ['*'],
-                'reward': -1,
+                'reward': -2,
                 'identity': 'breaking_blocks',
                 'max_reward_times': 200,
             },
@@ -87,7 +87,8 @@ def env_generator():
                 # '/fill -12 63 -12 12 63 12 minecraft:grass_block',
                 
                 '/give @p minecraft:iron_sword 1',
-                '/effect @p 5 9999 255 true',
+                '/effect give @p minecraft:strength 9999 5 true',
+                # '/effect @p 5 9999 255 true',
                 # '/effect clear @p',
             ]),
             SummonMobsCallback([{'name': 'cow', 'number': 20, 'range_x': [-10, 10], 'range_z': [-10, 10]}]),
@@ -97,7 +98,7 @@ def env_generator():
             ),
             JudgeResetCallback(600),
             # BarrierBoxCallback(size=25, height=10, block_type='bedrock'),
-            RecordCallback('./records/kill_cow_x1_penalized_balanced'),
+            RecordCallback('./records/kill_cow_x1_basic'),
         ]
     )
     return sim

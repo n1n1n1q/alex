@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from minestudio.online.rollout.start_manager import start_rolloutmanager
 from minestudio.online.trainer.start_trainer import start_trainer
 from omegaconf import OmegaConf
@@ -37,14 +39,14 @@ online_dict = {
         "num_workers": 1,
         "num_gpus_per_worker": 0.5,
         "num_cpus_per_worker": 1,
-        "num_iterations": 1,
+        "num_iterations": 500,
         "vf_warmup": 0,
         "learning_rate": 0.00002,
         "anneal_lr_linearly": False,
         "weight_decay": 0.04,
         "adam_eps": 1e-8,
         "batch_size_per_gpu": 1,
-        "batches_per_iteration": 1,
+        "batches_per_iteration": 10,
         "gradient_accumulation": 1, 
         "epochs_per_iteration": 1, 
         "context_length": 64,
@@ -84,8 +86,7 @@ online_dict = {
 
 if __name__ == "__main__":
 
-    with open("/alex/examples/training/test_train.py", 'r', encoding="utf8") as f:
-        whole_config = f.read()
+    whole_config = Path(__file__).resolve().read_text(encoding="utf8")
 
     online_config = OmegaConf.create(online_dict)
     start_rolloutmanager(policy_generator, env_generator, online_config)

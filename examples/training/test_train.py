@@ -9,7 +9,7 @@ online_dict = {
     "detach_rollout_manager": True,
     "rollout_config": {
     "num_rollout_workers": 1,
-    "num_gpus_per_worker": 1,
+    "num_gpus_per_worker": 0.1,
     "num_cpus_per_worker": 1,
     "fragment_length": 256,
     "to_send_queue_size": 6,
@@ -35,7 +35,7 @@ online_dict = {
     },
     "train_config": {
         "num_workers": 1,
-        "num_gpus_per_worker": 0,
+        "num_gpus_per_worker": 0.5,
         "num_cpus_per_worker": 1,
         "num_iterations": 1,
         "vf_warmup": 0,

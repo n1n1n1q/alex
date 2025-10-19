@@ -1,4 +1,4 @@
-# ALEX 1.0: Minecraft RL-micro and LLM-macro management AI agent
+# <img src="assets/alex.png" alt="ALEX Icon" width="30" style="vertical-align: middle;"/> ALEX 1.0: Minecraft RL-micro and LLM-macro management AI agent
 ## Environment setup
 1. Build docker with   
 ```bash

@@ -2,7 +2,7 @@ from .types import GameState, Subgoal, SkillRequest, SkillResult
 from .planner import Planner
 from .metaplanner import MetaPlanner
 from .reflex import ReflexPolicy
-from .state_extractor import extract_state
+from .extractor import extract_state
 from .skill_router import SkillRouter
 from .agent import Agent
 

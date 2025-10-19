@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, Any
 
 from .types import GameState, SkillResult
-from .state_extractor import extract_state
+from .extractor import extract_state
 from .planner import Planner
 from .metaplanner import MetaPlanner
 from .reflex import ReflexPolicy

@@ -6,18 +6,38 @@ from typing import Any, Dict, List, Optional
 
 @dataclass
 class GameState:
-    """Canonical, LLM-friendly state snapshot.
+    """State snapshot of the Minecraft environment.
 
-    Keep it light and JSON-serializable so it can be sent to an LLM or MCP.
+    env_state: biome id plus rainfall/temperature, sky & block light, rain flag, sea level, whether the sky is visible, sun brightness
+    player_pos: agent's coordinates plus yaw/pitch
+
+    blocks: nearby blocks data (if requested)
+    mobs: nearby entities data (if requested)
+
+    health: current health points (0-20 in survival)
+    hunger: current hunger bar state (0-20 in survival)
+
+    is_gui_open: GUI currently open flag
+    inventory: 36-slot map (0-8 hotbar, 9-35 main inventory) where each entry contains the item id and stack count
+    inventory_agg: aggregated inventory counts by item type
+    equipped_items: per-slot armour/offhand/mainhand payload with type, current damage, and maxDamage
+    
+    extras: catch-all for any other info keys
     """
-    pov_image: Optional[Any] = None  # placeholder: RGB array or bytes
-    inventory: Dict[str, int] = field(default_factory=dict)
+    env_state: Dict[str, Any] = field(default_factory=dict)
+    player_pos: Dict[str, Any] = field(default_factory=dict)
+
+    blocks: List[Any] = field(default_factory=list)
+    mobs: List[Dict[str, Any]] = field(default_factory=list)
+
     health: Optional[float] = None
-    hunger: Optional[float] = None
-    position: Optional[Dict[str, float]] = None  # {x, y, z}
-    biome: Optional[str] = None
-    time_of_day: Optional[str] = None  # day/night/dawn/dusk
-    nearby_entities: List[Dict[str, Any]] = field(default_factory=list)
+    hunger: Optional[int] = None
+
+    is_gui_open: Optional[bool] = None
+    inventory: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    inventory_agg: Dict[str, int] = field(default_factory=dict)
+    equipped_items: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+
     extras: Dict[str, Any] = field(default_factory=dict)
 
 

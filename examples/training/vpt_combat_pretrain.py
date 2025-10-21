@@ -1,3 +1,4 @@
+import os
 import lightning as L
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.callbacks import LearningRateMonitor
@@ -11,6 +12,10 @@ from minestudio.offline.lightning_callbacks import SmartCheckpointCallback, Spee
 from pathlib import Path
 from minestudio.data.minecraft.utils import pull_datasets_from_remote
 
+import argparse
+
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+
 policy = VPTPolicy.from_pretrained("CraftJarvis/MineStudio_VPT.foundation_model_3x")
 mine_lightning = MineLightning(
     mine_policy=policy,
@@ -20,7 +25,8 @@ mine_lightning = MineLightning(
     callbacks=[BehaviorCloneCallback(weight=0.01)]
 )
 def _resolve_dataset_dirs():
-    """Return a list of valid dataset dirs.
+    """
+    Return a list of valid dataset dirs.
     Prefer a local checkout if it contains a non-empty LMDB; otherwise download '10xx'.
     """
     local_dir = Path(__file__).resolve().parents[2] / "minestudio-data-10xx-v110"
@@ -45,23 +51,27 @@ mine_data = EventDataModule(
             ),
             ActionKernelCallback(),
         ],
-        win_len=128,
+        win_len=32,  # Reduced from 128->64->32 to save memory
         split_ratio=0.9,
         event_regex="minecraft.kill_entity:.*",
         bias=16,
-        min_nearby=64,
-        max_samples=1000,
+        min_nearby=32,  # Reduced from 64 to match win_len reduction
     ),
-    batch_size=8,
-    num_workers=4,
-    prefetch_factor=2,
+    batch_size=1,
+    num_workers=0,
+    prefetch_factor=None,
 )
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--path_ckpt', type=str, default=None, help='Path to checkpoint to resume from')
+
+ckpt_path = parser.parse_args().path_ckpt
 L.Trainer(
     logger=WandbLogger(project="minestudio-vpt"), 
     devices=1, 
-    precision="bf16", 
-    gradient_clip_val=1.0, 
+    precision="bf16-mixed",
+    gradient_clip_val=1.0,
+    accumulate_grad_batches=8, 
     callbacks=[
         LearningRateMonitor(logging_interval='step'), 
         SpeedMonitorCallback(),
@@ -74,4 +84,4 @@ L.Trainer(
             every_n_train_steps=2000+1, save_weights_only=False,
         )
     ]
-).fit(model=mine_lightning, datamodule=mine_data)
+).fit(model=mine_lightning, datamodule=mine_data, ckpt_path=ckpt_path, max_epochs=20)

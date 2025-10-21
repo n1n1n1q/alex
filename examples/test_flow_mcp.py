@@ -41,10 +41,29 @@ async def demonstrate_flow():
     env=None
 )
     # Example game state
-    with open('examples/example_state.json', 'r') as file:
-        example_game_state = json.load(file)
+    # with open('examples/example_state.json', 'r') as file:
+    #     example_game_state = json.load(file)
 
-    game_state = example_game_state
+    game_state = {
+  "env_state": {
+    "biome_id": 0,
+    "biome_rainfall": 0.5,
+    "biome_temperature": 0.6,
+    "can_see_sky": "true",
+    "is_raining": "false",
+    "light_level": 15,
+    "sea_level": 63,
+    "sky_light_level": 0.71,
+    "sun_brightness": 0.94
+  },
+  "player_pos": {
+    "x": -5917.310273460718,
+    "y": 74.41999998688698,
+    "z": -4676.614443646636,
+    "pitch": 3.1964128,
+    "yaw": -6.781003
+  }
+}
 
   
     print("Connecting to MCP server")

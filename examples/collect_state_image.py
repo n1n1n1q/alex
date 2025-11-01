@@ -5,6 +5,7 @@ from minestudio.simulator.callbacks import (
     SummonMobsCallback, 
     CommandsCallback, 
 )
+from examples.test_flow_mcp import process_game_state
 
 sim = MinecraftSim(
     seed=42,
@@ -25,7 +26,7 @@ sim = MinecraftSim(
 obs, info = sim.reset()
 
 # Do nothing for 200 steps to let the world settle
-for i in range(200):
+for i in range(20):
     action = sim.noop_action()
     obs, reward, terminated, truncated, info = sim.step(action)
 
@@ -40,8 +41,12 @@ for i in range(51):
     obs, reward, terminated, truncated, info = sim.step(action)
 
     if i % 10 == 0:
+        print(f"Collecting data at step {i}...")
         state = extract_state(info)
         state_to_json_file(state, f"game_state_step_{i}.json")
+
+        print(f"Processing game state at step {i}...")
+        process_game_state(state)
 
         pov = extract_pov(obs, info, resized=False)
         pov_to_image_file(pov, f"pov_image_step_{i}.png")

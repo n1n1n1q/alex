@@ -210,3 +210,4 @@ __marimo__/
 
 models/*
 !models/readme.md
+Miniconda3-latest-MacOSX-arm64.sh

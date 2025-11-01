@@ -45,10 +45,6 @@ def extract_state(raw_info: Dict) -> GameState:
     if not isinstance(info, dict) or not info:
         return GameState()
 
-    info.pop("pov", None)
-    info.pop("image", None)
-    info.pop("isGuiOpen", None)
-
     env_state = {}
 
     env_state["biome_id"] = info.get("location_stats", {}).get("biome_id")

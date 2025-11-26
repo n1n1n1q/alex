@@ -13,10 +13,6 @@ from mineclip import MineCLIP
 from mineclip.mineclip.tokenization import tokenize_batch
 
 
-MC_IMAGE_MEAN = (0.3331, 0.3245, 0.3051)
-MC_IMAGE_STD = (0.2439, 0.2493, 0.2873)
-
-
 class MineCLIPAnalyzer:
     SCENE_QUERIES = {
         "biome": {
@@ -104,12 +100,25 @@ class MineCLIPAnalyzer:
         
         self.transform = T.Compose([
             T.Resize((160, 256)),
-            T.ToTensor(),
-            T.Normalize(mean=MC_IMAGE_MEAN, std=MC_IMAGE_STD)
         ])
     
     def _encode_image(self, image: Image.Image) -> torch.Tensor:
-        image_tensor = self.transform(image).unsqueeze(0).unsqueeze(0).to(self.device)
+        """Encode a PIL image to MineCLIP embedding.
+        
+        MineCLIP expects input tensor with shape [B, L, C, H, W] where:
+        - B = batch size
+        - L = sequence length (number of frames, use 1 for single image)
+        - C = channels (3 for RGB)
+        - H, W = height, width (160, 256 for MineCLIP)
+        
+        Pixel values should be in [0, 255] range as the model handles normalization.
+        """
+        image = self.transform(image)
+        
+        image_tensor = torch.from_numpy(np.array(image)).permute(2, 0, 1).float()
+        
+        image_tensor = image_tensor.unsqueeze(0).unsqueeze(0).to(self.device)
+        
         with torch.no_grad():
             embedding = self.model.encode_video(image_tensor)
         return embedding
@@ -128,27 +137,53 @@ class MineCLIPAnalyzer:
         image_emb = F.normalize(image_emb, dim=-1)
         text_emb = F.normalize(text_emb, dim=-1)
         
-        similarity = (image_emb @ text_emb.T).squeeze().item()
+        logit_scale = self.model.clip_model.logit_scale.exp()
+        similarity = (logit_scale * (image_emb @ text_emb.T)).squeeze().item()
         return similarity
+    
+    def compute_similarities_batch(self, image: Image.Image, texts: list[str]) -> list[float]:
+        """Compute similarities for multiple text queries efficiently."""
+        image_emb = self._encode_image(image)
+        image_emb = F.normalize(image_emb, dim=-1)
+        
+        all_tokens = tokenize_batch(texts, max_length=77, language_model="clip")
+        all_tokens = all_tokens.to(self.device)
+        with torch.no_grad():
+            text_embs = self.model.encode_text(all_tokens)
+        text_embs = F.normalize(text_embs, dim=-1)
+        
+        logit_scale = self.model.clip_model.logit_scale.exp()
+        similarities = (logit_scale * (image_emb @ text_embs.T)).squeeze()
+        
+        return similarities.cpu().tolist()
     
     def _analyze_category(self, category: str, image: Image.Image) -> dict:
         queries = self.SCENE_QUERIES.get(category, {})
         
-        scores = {}
-        for name, query_text in queries.items():
-            scores[name] = round(self.compute_similarity(image, query_text), 4)
+        if not queries:
+            return {"scores": {}, "best_match": None, "confidence": 0.0, "probabilities": {}}
         
-        if scores:
-            best_match = max(scores, key=scores.get)
-            best_score = scores[best_match]
-        else:
-            best_match = None
-            best_score = 0.0
+        names = list(queries.keys())
+        texts = list(queries.values())
+        
+        raw_scores = self.compute_similarities_batch(image, texts)
+        
+        scores = {name: round(score, 4) for name, score in zip(names, raw_scores)}
+        
+        scores_tensor = torch.tensor(raw_scores)
+        probs = F.softmax(scores_tensor, dim=0).tolist()
+        probabilities = {name: round(prob, 4) for name, prob in zip(names, probs)}
+        
+        best_match = max(scores, key=scores.get)
+        best_score = scores[best_match]
+        best_prob = probabilities[best_match]
         
         return {
             "scores": scores,
+            "probabilities": probabilities,
             "best_match": best_match,
             "confidence": best_score,
+            "probability": best_prob,
         }
     
     def analyze(self, image_path: str) -> dict:
@@ -203,48 +238,52 @@ class MineCLIPAnalyzer:
 === MINECRAFT VISUAL ANALYSIS ===
 
 QUICK SUMMARY:
-  Biome: {summary['biome']} (confidence: {env['biome']['confidence']:.2f})
-  Time: {summary['time']} (confidence: {env['time']['confidence']:.2f})
-  Weather: {summary['weather']} (confidence: {env['weather']['confidence']:.2f})
-  Safety: {summary['safety']} (confidence: {analysis['safety']['confidence']:.2f})
+  Biome: {summary['biome']} (probability: {env['biome']['probability']:.1%})
+  Time: {summary['time']} (probability: {env['time']['probability']:.1%})
+  Weather: {summary['weather']} (probability: {env['weather']['probability']:.1%})
+  Safety: {summary['safety']} (probability: {analysis['safety']['probability']:.1%})
   Primary Threat: {threat_info}
   Top Resource: {summary['top_resource']}
 
-DETAILED SCORES:
+DETAILED PROBABILITIES:
 
 Environment/Biome:
-{self._format_scores(env['biome']['scores'])}
+{self._format_scores(env['biome']['probabilities'])}
 
 Time of Day:
-{self._format_scores(env['time']['scores'])}
+{self._format_scores(env['time']['probabilities'])}
 
 Weather:
-{self._format_scores(env['weather']['scores'])}
+{self._format_scores(env['weather']['probabilities'])}
 
 Safety Assessment:
-{self._format_scores(analysis['safety']['scores'])}
+{self._format_scores(analysis['safety']['probabilities'])}
 
 Hostile Mobs (threat detection):
-{self._format_scores(entities['hostile_mobs']['scores'])}
+{self._format_scores(entities['hostile_mobs']['probabilities'])}
 
 Passive Mobs:
-{self._format_scores(entities['passive_mobs']['scores'])}
+{self._format_scores(entities['passive_mobs']['probabilities'])}
 
 Resources:
-{self._format_scores(analysis['resources']['scores'])}
+{self._format_scores(analysis['resources']['probabilities'])}
 
 Structures:
-{self._format_scores(analysis['structures']['scores'])}
+{self._format_scores(analysis['structures']['probabilities'])}
 
 === END ANALYSIS ===
 """
         return context
     
-    def _format_scores(self, scores: dict) -> str:
+    def _format_scores(self, scores: dict, as_percent: bool = True) -> str:
         lines = []
         for name, score in sorted(scores.items(), key=lambda x: -x[1]):
-            bar = "█" * int(score * 20) + "░" * (20 - int(score * 20))
-            lines.append(f"  {name:15} [{bar}] {score:.3f}")
+            bar_len = int(score * 20) if score <= 1.0 else int(min(score / 5, 1.0) * 20)
+            bar = "█" * bar_len + "░" * (20 - bar_len)
+            if as_percent and score <= 1.0:
+                lines.append(f"  {name:15} [{bar}] {score:.1%}")
+            else:
+                lines.append(f"  {name:15} [{bar}] {score:.2f}")
         return "\n".join(lines)
     
     def get_embedding(self, image_path: str) -> np.ndarray:

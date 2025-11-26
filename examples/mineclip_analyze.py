@@ -295,7 +295,7 @@ Structures:
 def main():
     parser = argparse.ArgumentParser(description="Analyze Minecraft screenshots for agent decision-making")
     parser.add_argument("image", help="Path to Minecraft screenshot")
-    parser.add_argument("--weights", default=None, help="Path to MineCLIP weights (default: models/attn.pth)")
+    parser.add_argument("--weights", "--model", default=None, help="Path to MineCLIP weights (default: models/attn.pth)")
     parser.add_argument("--device", default="mps", choices=["cpu", "mps", "cuda"], help="Device to run on")
     parser.add_argument("--json", action="store_true", help="Output as JSON instead of text")
     parser.add_argument("--embedding", action="store_true", help="Output just the embedding vector")

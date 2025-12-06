@@ -1,7 +1,7 @@
 import json
 from typing import Any, Dict, List
 from mcp.server.fastmcp import FastMCP
-from few_shot_prompts import FEW_SHOT_EXAMPLES
+from .few_shot_prompts import FEW_SHOT_EXAMPLES
 
 
 mcp = FastMCP("minecraft-planner")

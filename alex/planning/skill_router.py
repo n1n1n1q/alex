@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Dict
 
-from .types import Subgoal, SkillRequest
+from ..core.types import Subgoal, SkillRequest
 
 
 class SkillRouter:

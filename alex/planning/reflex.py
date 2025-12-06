@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .types import GameState, Subgoal
+from ..core.types import GameState, Subgoal
 
 
 class ReflexPolicy:

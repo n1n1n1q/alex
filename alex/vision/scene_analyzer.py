@@ -9,9 +9,9 @@ from PIL import Image
 
 from .encoders import MineCLIPEncoder
 try:
-    from ..vision_queries import SCENE_QUERIES
+    from .vision_queries import SCENE_QUERIES
 except ImportError:
-    from alex.vision_queries import SCENE_QUERIES
+    from alex.vision.vision_queries import SCENE_QUERIES
 
 
 class SceneAnalyzer:

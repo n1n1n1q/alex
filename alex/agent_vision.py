@@ -24,7 +24,15 @@ from .vision.formatters import VisionFormatter
 class AgentVision:
     """
     Vision module for the Minecraft agent using MineCLIP.
-    Analyzes game screenshots to provide environmental context.
+    
+    Provides direct access to vision components:
+    - encoder: MineCLIPEncoder for image/text encoding
+    - scene_analyzer: SceneAnalyzer for comprehensive scene analysis
+    - spatial_attention: SpatialAttentionMap for spatial object detection
+    - formatter: VisionFormatter for output formatting
+    
+    For most use cases, use analyze_comprehensive() which combines
+    both global scene analysis and spatial detection.
     """
     
     def __init__(
@@ -36,7 +44,7 @@ class AgentVision:
         Initialize the vision module with MineCLIP.
         
         Args:
-            weights_path: Path to MineCLIP weights. If None, defaults to ../models/attn.pth
+            weights_path: Path to MineCLIP weights. If None, defaults to ../models/avg.pth
             device: Device to run on ('cpu', 'cuda', 'mps'). Auto-detects if None.
         """
         # Auto-detect device
@@ -85,152 +93,42 @@ class AgentVision:
         
         self.model.eval()
         
-        # Initialize modular components
+        # Initialize modular components (exposed for direct access)
         self.encoder = MineCLIPEncoder(self.model, device)
         self.scene_analyzer = SceneAnalyzer(self.encoder)
         self.spatial_attention = SpatialAttentionMap(self.model, device)
         self.formatter = VisionFormatter()
     
-    def compute_similarity(self, image: Image.Image, text: str) -> float:
-        """
-        Compute similarity between an image and text description.
-        
-        Args:
-            image: PIL Image
-            text: Text description
-            
-        Returns:
-            Similarity score (higher = more similar)
-        """
-        return self.encoder.compute_similarity(image, text)
-    
-    def compute_similarities_batch(
-        self, 
-        image: Image.Image, 
-        texts: list[str]
-    ) -> list[float]:
-        """
-        Compute similarities for multiple text queries efficiently.
-        
-        Args:
-            image: PIL Image
-            texts: List of text descriptions
-            
-        Returns:
-            List of similarity scores
-        """
-        return self.encoder.compute_similarities_batch(image, texts)
-    
-    def analyze_image(self, image: Image.Image) -> dict:
-        """
-        Perform comprehensive analysis of a Minecraft screenshot.
-        
-        Args:
-            image: PIL Image to analyze
-            
-        Returns:
-            Dictionary with comprehensive scene analysis
-        """
-        return self.scene_analyzer.analyze_comprehensive(image)
-    
-    def analyze_from_path(self, image_path: str) -> dict:
-        """
-        Analyze an image from a file path.
-        
-        Args:
-            image_path: Path to image file
-            
-        Returns:
-            Dictionary with comprehensive scene analysis
-        """
-        return self.scene_analyzer.analyze_from_path(image_path)
-    
-    def generate_context_string(self, analysis: dict) -> str:
-        """
-        Generate a human-readable context string from analysis results.
-        
-        Args:
-            analysis: Analysis dictionary from analyze_image()
-            
-        Returns:
-            Formatted context string for agent
-        """
-        return self.formatter.generate_context_string(analysis)
-    
-    def get_embedding(self, image: Image.Image) -> np.ndarray:
-        """
-        Get the raw embedding vector for an image.
-        
-        Args:
-            image: PIL Image
-            
-        Returns:
-            Numpy array of embedding
-        """
-        return self.encoder.get_embedding(image)
-    
-    def analyze_spatial(
-        self,
-        image: Image.Image,
-        spatial_queries: Optional[list[str]] = None,
-        threshold: float = 0.165,
-        use_softmax: bool = True,
-        temperature: float = 0.1,
-        return_grids: bool = False
-    ) -> dict:
-        """
-        Perform spatial analysis to detect WHERE objects are located.
-        
-        Args:
-            image: PIL Image to analyze
-            spatial_queries: List of objects to detect spatially. 
-                           If None, uses default queries from vision_queries.py
-            threshold: Detection confidence threshold (0-1)
-            use_softmax: Use competitive softmax for detection (recommended)
-            temperature: Softmax temperature for sharpness
-            return_grids: Whether to return detailed 4x4 grids
-            
-        Returns:
-            Dictionary with spatial analysis including:
-            - description: Natural language description of detections
-            - detections: List of structured detection info
-            - grids_4x4: Optional 4x4 grids per query
-        """
-        from .vision_queries import SPATIAL_QUERIES
-        
-        if spatial_queries is None:
-            spatial_queries = SPATIAL_QUERIES
-        
-        # Preprocess image to tensor
-        image_tensor = self.encoder.preprocess_image_to_tensor(image)
-        
-        # Run spatial analysis
-        result = self.spatial_attention.analyze_spatial(
-            image_tensor,
-            spatial_queries,
-            threshold=threshold,
-            use_softmax=use_softmax,
-            temperature=temperature,
-            return_grids=return_grids
-        )
-        
-        return result
-    
     def analyze_comprehensive(self, image: Image.Image) -> dict:
         """
         Perform both global scene analysis AND spatial analysis.
         
+        This is the recommended high-level method for most use cases.
+        It combines scene categorization with spatial object detection.
+        
         Args:
             image: PIL Image to analyze
             
         Returns:
-            Dictionary with both global and spatial analysis
+            Dictionary with both global and spatial analysis:
+            - global: Scene categorization (biome, time, mobs, resources, etc.)
+            - spatial: Spatial object detection with locations
+            - combined_context: Human-readable text combining both analyses
         """
         # Get global scene analysis
-        global_analysis = self.analyze_image(image)
+        global_analysis = self.scene_analyzer.analyze_comprehensive(image)
         
-        # Get spatial analysis
-        spatial_analysis = self.analyze_spatial(image)
+        # Get spatial analysis with default queries
+        from .vision.vision_queries import SPATIAL_QUERIES
+        image_tensor = self.encoder.preprocess_image_to_tensor(image)
+        spatial_analysis = self.spatial_attention.analyze_spatial(
+            image_tensor,
+            SPATIAL_QUERIES,
+            threshold=0.165,
+            use_softmax=True,
+            temperature=0.1,
+            return_grids=False
+        )
         
         # Combine results
         return {

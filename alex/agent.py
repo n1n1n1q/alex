@@ -1,42 +1,62 @@
 from __future__ import annotations
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import os
 
-from .types import GameState, SkillResult
-from .extractor import extract_state
-from .metaplanner import MetaPlanner
-from .reflex import ReflexPolicy
-from .skill_router import SkillRouter
-from .policy_executor import execute_policy_skill
+from .core.types import GameState, SkillResult
+from .core.extractor import extract_state
+from .planning.metaplanner import MetaPlanner
+from .planning.reflex import ReflexPolicy
+from .planning.skill_router import SkillRouter
+from .execution.policy_executor import execute_policy_skill
+from .core.config import get_config
 
-# Use Gemini planner if API key is available, otherwise fall back to simple planner
-_USE_GEMINI = os.getenv("GEMINI_API_KEY") is not None
+# Conditional imports based on configuration
+_config = get_config()
 
-if _USE_GEMINI:
+if _config.use_gemini_planner:
     try:
-        from .planner_gemini import GeminiPlanner as Planner
+        from .planning.planner_gemini import GeminiPlanner as Planner
         print("✓ Using Gemini-based planner")
     except ImportError as e:
         print(f"⚠ Failed to import GeminiPlanner: {e}")
         print("  Falling back to simple rule-based planner")
-        from .planner import Planner
+        from .planning.planner import Planner
 else:
-    from .planner import Planner
-    print("ℹ Using simple rule-based planner (set GEMINI_API_KEY to use Gemini)")
+    from .planning.planner import Planner
+    if _config.verbose:
+        print("ℹ Using simple rule-based planner (set GEMINI_API_KEY to use Gemini)")
 
 
 class Agent:
     """Top-level orchestrator following the diagram:
 
     Game env -> state extraction -> reflex -> planner -> metaplanner -> skill response -> execution
+    
+    The agent can be configured through the AlexConfig system or by passing
+    custom components for dependency injection.
     """
 
-    def __init__(self) -> None:
-        self.reflex = ReflexPolicy()
-        self.planner = Planner()
-        self.metaplanner = MetaPlanner()
-        self.router = SkillRouter()
+    def __init__(
+        self,
+        reflex: Optional[ReflexPolicy] = None,
+        planner: Optional[Planner] = None,
+        metaplanner: Optional[MetaPlanner] = None,
+        router: Optional[SkillRouter] = None,
+    ) -> None:
+        """
+        Initialize agent with optional dependency injection.
+        
+        Args:
+            reflex: Custom reflex policy (default: ReflexPolicy())
+            planner: Custom planner (default: based on config)
+            metaplanner: Custom metaplanner (default: MetaPlanner())
+            router: Custom skill router (default: SkillRouter())
+        """
+        self.reflex = reflex or ReflexPolicy()
+        self.planner = planner or Planner()
+        self.metaplanner = metaplanner or MetaPlanner()
+        self.router = router or SkillRouter()
 
     def step(self, raw_obs: Dict[str, Any]) -> SkillResult:
         state: GameState = extract_state(raw_obs)

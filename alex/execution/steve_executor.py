@@ -185,44 +185,8 @@ class SteveExecutor:
         self.policy = None
 
 
-# Global singleton instance (lazy loaded)
-_steve_executor: Optional[SteveExecutor] = None
-
-
-def get_steve_executor() -> SteveExecutor:
-    """Get or create global STEVE executor instance."""
-    global _steve_executor
-    if _steve_executor is None:
-        _steve_executor = SteveExecutor()
-    return _steve_executor
-
-
-def execute_steve_action(
-    text_command: str,
-    env_obs: Dict[str, Any],
-    max_steps: Optional[int] = None,
-    cond_scale: Optional[float] = None,
-) -> Dict[str, Any]:
-    """
-    Convenience function to execute STEVE-1 action.
-    
-    Args:
-        text_command: Short prompt like "mine log", "kill cow"
-        env_obs: Current environment observation
-        max_steps: Maximum steps (default: 100)
-        cond_scale: Conditioning strength (default: 5.0)
-        
-    Returns:
-        Execution result dict with status, actions, and info
-    """
-    executor = get_steve_executor()
-    return executor.execute(text_command, env_obs, max_steps, cond_scale)
-
-
 __all__ = [
     "SteveExecutor",
     "CommandCallback",
-    "get_steve_executor",
-    "execute_steve_action",
     "STEVE_AVAILABLE",
 ]

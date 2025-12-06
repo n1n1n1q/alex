@@ -1,31 +1,11 @@
 from __future__ import annotations
-from dataclasses import is_dataclass, fields
-from collections.abc import Mapping, Sequence
+
 from typing import Any, Dict
-from .types import GameState
 import numpy as np
-import json
 from PIL import Image
 
-def _to_serializable(obj):
-    """Convert object to JSON-serializable form."""
-    if is_dataclass(obj):
-        return {f.name: _to_serializable(getattr(obj, f.name)) for f in fields(obj)}
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    if isinstance(obj, (np.integer,)):
-        return int(obj)
-    if isinstance(obj, (np.floating,)):
-        return float(obj)
-    if isinstance(obj, Mapping):
-        out = {}
-        for k, v in obj.items():
-            key = k if isinstance(k, str) else str(k)
-            out[key] = _to_serializable(v)
-        return out
-    if isinstance(obj, Sequence) and not isinstance(obj, (str, bytes, bytearray)):
-        return [_to_serializable(x) for x in obj]
-    return obj
+from .types import GameState
+from ..utils.serialization import to_serializable, to_json_str as _to_json_str, to_json_file as _to_json_file
 
 def _aggregate_inventory(inv: dict) -> dict:
     """Aggregate inventory counts by item type."""
@@ -124,9 +104,8 @@ def pov_to_image_file(pov: np.ndarray, filepath: str) -> None:
 
 def state_to_json_str(state: GameState) -> str:
     """Convert GameState to JSON string."""
-    return json.dumps(state, default=_to_serializable, ensure_ascii=False, indent=2)
+    return _to_json_str(state)
 
 def state_to_json_file(state: GameState, filepath: str) -> None:
     """Save GameState to a JSON file."""
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(state, f, default=_to_serializable, ensure_ascii=False, indent=2)
+    _to_json_file(state, filepath)

@@ -210,36 +210,7 @@ STEVE Prompt:"""
         return mapping.get(skill_name, "mine dirt")  # Default fallback
 
 
-# Global singleton
-_prompt_generator: Optional[ActionPromptGenerator] = None
-
-
-def get_prompt_generator() -> ActionPromptGenerator:
-    """Get or create global prompt generator instance."""
-    global _prompt_generator
-    if _prompt_generator is None:
-        _prompt_generator = ActionPromptGenerator()
-    return _prompt_generator
-
-
-def generate_steve_prompt(skill_name: str, skill_params: Dict[str, Any]) -> str:
-    """
-    Convenience function to generate STEVE-1 prompt.
-    
-    Args:
-        skill_name: Name of the skill
-        skill_params: Skill parameters
-        
-    Returns:
-        Short STEVE-1 prompt
-    """
-    generator = get_prompt_generator()
-    return generator.generate_prompt(skill_name, skill_params)
-
-
 __all__ = [
     "ActionPromptGenerator",
-    "get_prompt_generator",
-    "generate_steve_prompt",
     "GEMINI_AVAILABLE",
 ]

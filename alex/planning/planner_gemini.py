@@ -6,10 +6,11 @@ import google.generativeai as genai
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-from .types import GameState, Subgoal
+from ..core.types import GameState, Subgoal
+from .base_planner import BasePlanner
 
 
-class GeminiMCPPlanner:
+class GeminiMCPPlanner(BasePlanner):
     """
     Gemini-powered planner using FastMCP server for prompt engineering.
     The MCP server provides structured prompts and validation.
@@ -147,7 +148,8 @@ class GeminiMCPPlanner:
                 print(f"{'='*70}\n")
             else:
                 print(f"Gemini planning failed: {e}")
-            return self._fallback_plan(state)
+            # Use inherited fallback_plan method
+            return self.fallback_plan(state)
     
     def plan(self, state: GameState) -> List[Subgoal]:
         """Synchronous wrapper for plan_async"""
@@ -165,27 +167,6 @@ class GeminiMCPPlanner:
                 priority=sg_dict.get("priority", 50)
             )
             subgoals.append(subgoal)
-        
-        return subgoals
-    
-    def _fallback_plan(self, state: GameState) -> List[Subgoal]:
-        """Fallback to basic heuristics if Gemini/MCP fails"""
-        subgoals: List[Subgoal] = []
-        
-        # Emergency situations
-        if state.health is not None and state.health <= 4:
-            return [Subgoal(name="emergency_retreat", params={}, priority=100)]
-        
-        # Use inventory_agg which is a simple dict of {item_name: count}
-        inv = state.inventory_agg if state.inventory_agg else {}
-        
-        # Basic progression
-        if inv.get("planks", 0) < 4 and inv.get("log", 0) < 2:
-            subgoals.append(Subgoal(name="collect_wood", params={"count": 4}, priority=10))
-        elif inv.get("crafting_table", 0) < 1:
-            subgoals.append(Subgoal(name="craft_table", params={}, priority=8))
-        else:
-            subgoals.append(Subgoal(name="idle_scan", params={}, priority=0))
         
         return subgoals
 

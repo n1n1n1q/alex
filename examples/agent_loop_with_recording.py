@@ -31,7 +31,7 @@ from minestudio.inference import EpisodePipeline, MineGenerator
 
 # Import alex components
 from alex.agent import Agent
-from alex.extractor import extract_state
+from alex.core.extractor import extract_state
 
 
 class VerboseAgent(Agent):
@@ -48,10 +48,10 @@ class VerboseAgent(Agent):
             print(f"  [Reflex] 🚨 TRIGGERED: {reflex_goal}")
             skill_req = self.router.to_skill(reflex_goal)
             print(f"  [Router] Mapped to skill: {skill_req}")
-            from alex.policy_executor import execute_policy_skill
+            from alex.execution.policy_executor import execute_policy_skill
             result = execute_policy_skill(skill_req, env_obs=raw_obs)
             print(f"  [Executor] Result: {result.get('status', 'unknown')}")
-            from alex.types import SkillResult
+            from alex.core.types import SkillResult
             return SkillResult(**result)
         
         print(f"  [Reflex] No urgent situations detected")
@@ -76,7 +76,7 @@ class VerboseAgent(Agent):
         next_goal = self.metaplanner.pop_next()
         if next_goal is None:
             print(f"  [MetaPlanner] ⚠️ No goals in backlog - nothing to do")
-            from alex.types import SkillResult
+            from alex.core.types import SkillResult
             return SkillResult(status="OK", info={"note": "nothing to do"})
         
         print(f"  [MetaPlanner] 🎯 Selected next goal: {next_goal.name}")
@@ -88,13 +88,13 @@ class VerboseAgent(Agent):
         
         # Execute
         print(f"  [Executor] Executing skill...")
-        from alex.policy_executor import execute_policy_skill
+        from alex.execution.policy_executor import execute_policy_skill
         result = execute_policy_skill(skill_req, env_obs=raw_obs)
         print(f"  [Executor] Status: {result.get('status', 'unknown')}")
         if 'steve_prompt' in result:
             print(f"  [Executor] 💬 STEVE-1 Prompt: '{result['steve_prompt']}'")
         
-        from alex.types import SkillResult
+        from alex.core.types import SkillResult
         return SkillResult(**result)
 
 

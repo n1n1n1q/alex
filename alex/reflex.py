@@ -14,6 +14,8 @@ class ReflexPolicy:
         if state.health is not None and state.health <= 4:
             return Subgoal(name="emergency_retreat", params={}, priority=100)
         # If night and no shelter detected, suggest shelter
-        if state.time_of_day == "night" and state.inventory.get("torch", 0) == 0:
-            return Subgoal(name="seek_shelter", params={}, priority=90)
+        # Note: time_of_day is not currently in GameState, so this check is disabled
+        # Use inventory_agg instead of inventory for simple item counts
+        # if state.time_of_day == "night" and state.inventory_agg.get("torch", 0) == 0:
+        #     return Subgoal(name="seek_shelter", params={}, priority=90)
         return None

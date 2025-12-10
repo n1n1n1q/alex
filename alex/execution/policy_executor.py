@@ -1,22 +1,3 @@
-"""
-Policy Skill Executor with STEVE-1 Integration
-
-Executes micro-skills using STEVE-1 pretrained policy.
-
-Flow:
-1. Receive SkillRequest (high-level goal like "gather_wood")
-2. Generate short STEVE-1 prompt using LLM ("mine log")
-3. Execute STEVE-1 policy to generate low-level actions
-4. Return SkillResult with action sequence
-
-Contract:
-- Input: SkillRequest with name, params, optional timeout_ms
-- Output: SkillResult with status, info, and low_level_actions
-
-The LLM (Gemini) generates appropriate STEVE-1 prompts based on the skill,
-then STEVE-1 executes the low-level controller actions.
-"""
-
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
@@ -31,11 +12,11 @@ _STEVE_READY = False
 if _config.use_steve_executor:
     try:
         from .steve_executor import SteveExecutor, STEVE_AVAILABLE
-        from ..prompts.action_prompt_generator import ActionPromptGenerator, GEMINI_AVAILABLE
-        _STEVE_READY = STEVE_AVAILABLE and GEMINI_AVAILABLE
+        from ..prompts.action_prompt_generator import ActionPromptGenerator, HF_AVAILABLE
+        _STEVE_READY = STEVE_AVAILABLE and HF_AVAILABLE
     except ImportError:
         STEVE_AVAILABLE = False
-        GEMINI_AVAILABLE = False
+        HF_AVAILABLE = False
 
 
 _steve_executor: Optional[Any] = None
@@ -43,9 +24,7 @@ _prompt_generator: Optional[Any] = None
 
 
 def _get_steve_executor():
-    """
-    Get or create STEVE executor instance.
-    """
+
     global _steve_executor
     if _steve_executor is None and _STEVE_READY:
         _steve_executor = SteveExecutor(
@@ -57,13 +36,12 @@ def _get_steve_executor():
 
 
 def _get_prompt_generator():
-    """
-    Get or create prompt generator instance.
-    """
+
     global _prompt_generator
     if _prompt_generator is None and _STEVE_READY:
         _prompt_generator = ActionPromptGenerator(
-            api_key=_config.gemini_api_key,
+            model_name=_config.hf_model_name,
+            device=_config.device,
             verbose=_config.verbose,
         )
     return _prompt_generator
@@ -73,22 +51,8 @@ def execute_policy_skill(
     request: SkillRequest | Dict[str, Any],
     env_obs: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """
-    Execute a micro-skill via STEVE-1 policy (if enabled) or placeholder.
 
-    Parameters:
-    - request: SkillRequest or dict with 'name', 'params', optional 'timeout_ms'
-    - env_obs: Current environment observation (required for STEVE-1 execution)
-
-    Returns:
-    - dict SkillResult with status, info, and low_level_actions
-
-    Environment Variable Configuration:
-    - USE_STEVE_EXECUTOR: Set to "true" to enable STEVE-1 execution
-    - GEMINI_API_KEY: Required for LLM prompt generation
-    """
     if not isinstance(request, SkillRequest):
-        # Be forgiving to simple dict-based callers
         request = SkillRequest(
             name=str(request.get("name", "unknown")),
             params=dict(request.get("params", {})),
@@ -97,10 +61,8 @@ def execute_policy_skill(
 
     start = time.time()
 
-    # STEVE-1 execution path
     if _STEVE_READY and env_obs is not None:
         try:
-            # Get instances
             executor = _get_steve_executor()
             generator = _get_prompt_generator()
             
@@ -120,7 +82,6 @@ def execute_policy_skill(
                 cond_scale=_config.steve_default_cond_scale,
             )
             
-            # Add timing info
             elapsed_ms = int((time.time() - start) * 1000)
             result["info"]["elapsed_ms"] = elapsed_ms
             result["info"]["skill"] = request.name
@@ -131,7 +92,6 @@ def execute_policy_skill(
             return result
             
         except Exception as e:
-            # Fall back to placeholder on error
             elapsed_ms = int((time.time() - start) * 1000)
             return {
                 "status": "FAILED",

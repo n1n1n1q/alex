@@ -30,7 +30,7 @@ Priority Guidelines:
 Key Principles:
 1. **Safety first**: Always consider health, hunger, time of day, and nearby threats
 2. **Prerequisites**: Don't plan actions that require unavailable resources
-3. **Progression**: Early game focuses on wood → crafting table → tools → mining
+3. **Progression**: Early game focuses on wood -> crafting table -> tools -> mining
 4. **Context awareness**: Consider biome, inventory, and environmental factors
 5. **Immediacy**: The immediate_action should be executable right now with current resources
 
@@ -60,18 +60,7 @@ ACTION_PLAN_SCHEMA = {
 
 @mcp.tool()
 def plan_actions(game_state: dict) -> str:
-    """
-    Generate a structured action plan from current Minecraft game state.
-    
-    Takes the current game state and returns a complete prompt that should be
-    sent to Gemini (or any LLM) to generate an action plan.
-    
-    Args:
-        game_state: Current game state with inventory, health, position, etc.
-        
-    Returns:
-        Complete prompt string with system instructions and few-shot examples
-    """
+
     guidelines = get_planning_guidelines()
 
     allowed_actions = [
@@ -101,13 +90,7 @@ def plan_actions(game_state: dict) -> str:
 
 @mcp.tool()
 def get_planning_guidelines() -> dict:
-    """
-    Get the planning guidelines and action name conventions.
-    Useful for understanding what actions are available and how priorities work.
-    
-    Returns:
-        Dictionary with priority levels, common actions, and progression tips
-    """
+
     return {
         "priority_levels": {
             "100": "Life-threatening emergencies",
@@ -170,15 +153,7 @@ def get_planning_guidelines() -> dict:
 
 @mcp.tool()
 def validate_action_plan(plan_json: str) -> dict:
-    """
-    Validate that an action plan follows the correct structure.
-    
-    Args:
-        plan_json: JSON string of the action plan to validate
-        
-    Returns:
-        Validation result with errors if any
-    """
+
     try:
         plan = json.loads(plan_json)
         
@@ -222,16 +197,13 @@ def validate_action_plan(plan_json: str) -> dict:
 
 @mcp.resource("minecraft://examples")
 def get_examples() -> str:
-    """
-    Get all few-shot examples as a formatted resource.
-    Useful for debugging or understanding the expected format.
-    """
+
     return json.dumps(FEW_SHOT_EXAMPLES, indent=2)
 
 
 @mcp.resource("minecraft://schema")
 def get_schema() -> str:
-    """Get the expected action plan JSON schema"""
+
     return json.dumps(ACTION_PLAN_SCHEMA, indent=2)
 
 

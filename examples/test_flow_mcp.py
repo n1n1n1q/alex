@@ -2,51 +2,49 @@ import os
 import json
 import asyncio
 import sys
-import google.generativeai as genai
+import torch
+from transformers import pipeline
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from dotenv import load_dotenv
-import json
+
 load_dotenv()
 
 
 async def demonstrate_flow():
-    """
-    demonstration of the MCP + Gemini flow
-    """
+
+    model_name = os.getenv("HF_MODEL_NAME", "meta-llama/Llama-3.2-3B-Instruct")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        print("Gemini API key not set")
-        return
+    print(f"Loading model: {model_name} on {device}...")
     
-    genai.configure(api_key=api_key)
-    
-    generation_config = {
-        "temperature": 0.7,
-        "max_output_tokens": 2048,
-        "response_mime_type": "application/json",
-    }
-    
-    # Set up Gemini model
-    model = genai.GenerativeModel(
-        model_name="gemini-2.0-flash-exp",
-        generation_config=generation_config
+    pipe = pipeline(
+        "text-generation",
+        model=model_name,
+        device_map=device,
+        torch_dtype=torch.bfloat16 if device == "cuda" and torch.cuda.is_bf16_supported() else torch.float16,
+        trust_remote_code=True
     )
     
-    # MCP server parameters
+    generation_config = {
+        "max_new_tokens": 2048,
+        "temperature": 0.7,
+        "top_p": 0.95,
+        "do_sample": True,
+        "return_full_text": False,
+    }
+    
     server_params = StdioServerParameters(
-    command=sys.executable,
-    args=["alex/llm/mcp_server.py"],
-    env=None
-)
-    # Example game state
+        command=sys.executable,
+        args=["alex/prompts/mcp_server.py"],
+        env=None
+    )
+    
     with open('examples/example_state.json', 'r') as file:
         example_game_state = json.load(file)
 
     game_state = example_game_state
 
-  
     print("Connecting to MCP server")
     
     async with stdio_client(server_params) as (read, write):
@@ -54,7 +52,6 @@ async def demonstrate_flow():
             await session.initialize()
             print("Connected to MCP server")
             
-            # Call the MCP tool to get the prompt
             result = await session.call_tool(
                 "plan_actions",
                 arguments={"game_state": game_state}
@@ -65,18 +62,29 @@ async def demonstrate_flow():
             print(f"\nReceived prompt from MCP server")
             print(f"Length: {len(prompt)} characters")
             
-            
-            print("Sending prompt to agent")
-            print(f"Model: gemini-2.0-flash-exp")
+            print("Sending prompt to model")
+            print(f"Model: {model_name}")
             print(f"Config: JSON output, temp=0.7")
             
-            response = model.generate_content(prompt)
+            messages = [
+                {"role": "system", "content": "You are an expert Minecraft agent planner. You must output ONLY valid JSON. Do not include markdown formatting or explanations."},
+                {"role": "user", "content": prompt}
+            ]
             
-            print("\nReceived response from Gemini")
+            outputs = pipe(messages, **generation_config)
+            response_text = outputs[0]["generated_text"]
             
-            plan_json = response.text
+            print("\nReceived response from model")
             
-            print(f"\nRaw Gemini Response:")
+            plan_json = response_text.strip()
+            
+            import re
+            pattern = r"```(?:json)?\s*(.*?)```"
+            match = re.search(pattern, plan_json, re.DOTALL)
+            if match:
+                plan_json = match.group(1).strip()
+            
+            print(f"\nRaw Model Response:")
             print("-" * 70)
             print(plan_json)
             print("-" * 70)
@@ -85,7 +93,7 @@ async def demonstrate_flow():
                 plan = json.loads(plan_json)
                 print("\nResponse is valid JSON")
             except json.JSONDecodeError as e:
-                print(f"\nInvalid JSON from Gemini: {e}")
+                print(f"\nInvalid JSON from model: {e}")
                 return
             
             print("Validating plan via MCP server")
@@ -107,7 +115,6 @@ async def demonstrate_flow():
             else:
                 print("\nPlan is valid with no warnings")
             
-            
             subgoals = []
             for sg_dict in plan.get("subgoals", []):
                 subgoal = {
@@ -116,7 +123,6 @@ async def demonstrate_flow():
                     "priority": sg_dict.get("priority", 50)
                 }
                 subgoals.append(subgoal)
-            
             
             print("\nFINAL OUTPUT:")
             print("-" * 70)
@@ -131,13 +137,11 @@ async def demonstrate_flow():
             if "context_notes" in plan:
                 print(f"\nContext Notes:")
                 for note in plan["context_notes"]:
-                    print(f"  • {note}")
-            
+                    print(f"  - {note}")
+
 
 def main():
-    """
-    Main entry point
-    """
+
     import sys
     
     asyncio.run(demonstrate_flow())

@@ -19,7 +19,7 @@ Usage:
 __version__ = "0.1.0"
 
 # Main components (imported here for convenience)
-from .agent import Agent
+from .agent import Agent, VerboseAgent
 from .agent_vision import AgentVision
 
-__all__ = ["Agent", "AgentVision"]
+__all__ = ["Agent", "VerboseAgent", "AgentVision"]

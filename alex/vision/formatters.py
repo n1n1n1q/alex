@@ -1,29 +1,12 @@
-"""
-Formatting utilities for vision analysis results.
-"""
-
-
 class VisionFormatter:
-    """
-    Formats vision analysis results into human-readable strings.
-    """
-    
+
     @staticmethod
     def format_scores(scores: dict, as_percent: bool = True) -> str:
-        """
-        Format scores as a visual bar chart.
-        
-        Args:
-            scores: Dictionary of name -> score
-            as_percent: Whether to format as percentage (for probabilities)
-            
-        Returns:
-            Formatted string with bars
-        """
+
         lines = []
         for name, score in sorted(scores.items(), key=lambda x: -x[1]):
             bar_len = int(score * 20) if score <= 1.0 else int(min(score / 5, 1.0) * 20)
-            bar = "█" * bar_len + "░" * (20 - bar_len)
+            bar = "#" * bar_len + "." * (20 - bar_len)
             if as_percent and score <= 1.0:
                 lines.append(f"  {name:15} [{bar}] {score:.1%}")
             else:
@@ -32,15 +15,7 @@ class VisionFormatter:
     
     @staticmethod
     def generate_context_string(analysis: dict) -> str:
-        """
-        Generate a human-readable context string from analysis results.
-        
-        Args:
-            analysis: Analysis dictionary from analyze_image()
-            
-        Returns:
-            Formatted context string for agent
-        """
+
         summary = analysis["summary"]
         threat_info = summary["top_threat"] if summary["top_threat"] else "none detected"
         env = analysis["environment"]
@@ -91,25 +66,15 @@ Structures:
         global_analysis: dict, 
         spatial_analysis: dict
     ) -> str:
-        """
-        Generate a combined context string from global and spatial analysis.
-        
-        Args:
-            global_analysis: Results from analyze_image()
-            spatial_analysis: Results from analyze_spatial()
-            
-        Returns:
-            Formatted context string for agent
-        """
+
         global_context = VisionFormatter.generate_context_string(global_analysis)
         spatial_desc = spatial_analysis["description"]
         
-        # Add spatial detections if available
         if spatial_analysis.get("detections"):
             detections_str = "\n\nSPATIAL DETECTIONS (with locations):\n"
             for det in spatial_analysis["detections"][:5]:
                 detections_str += (
-                    f"  • {det['object']}: "
+                    f"  - {det['object']}: "
                     f"{det['horizontal_zone']}, {det['depth_zone']} "
                     f"(confidence: {det['confidence']:.2%})\n"
                 )

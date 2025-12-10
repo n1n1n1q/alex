@@ -1,10 +1,3 @@
-"""
-Configuration management for Alex agent.
-
-Centralizes all environment-based configuration and provides
-a clean interface for accessing settings throughout the codebase.
-"""
-
 from __future__ import annotations
 
 import os
@@ -14,13 +7,8 @@ from typing import Optional
 
 @dataclass
 class AlexConfig:
-    """
-    Central configuration for Alex agent system.
-    """
-    
-    gemini_api_key: Optional[str] = None
-    
-    use_gemini_planner: bool = False
+
+    use_hf_planner: bool = False
     use_steve_executor: bool = False
     
     steve_model_path: str = "CraftJarvis/MineStudio_STEVE-1.official"
@@ -31,9 +19,9 @@ class AlexConfig:
     steve_default_cond_scale: float = 5.0
     steve_default_max_steps: int = 100
     
-    gemini_model_name: str = "gemini-2.0-flash-exp"
-    gemini_temperature: float = 0.7
-    gemini_max_tokens: int = 1024
+    hf_model_name: str = "meta-llama/Llama-3.2-3B-Instruct"
+    hf_temperature: float = 0.6
+    hf_max_tokens: int = 1024
     
     mcp_server_path: str = "mcp_server.py"
     
@@ -41,23 +29,8 @@ class AlexConfig:
     
     @classmethod
     def from_env(cls) -> AlexConfig:
-        """
-        Create configuration from environment variables.
-        
-        Environment variables:
-            GEMINI_API_KEY: API key for Google Gemini
-            USE_GEMINI_PLANNER: Enable Gemini-based planning (true/false)
-            USE_STEVE_EXECUTOR: Enable STEVE-1 execution (true/false)
-            STEVE_MODEL_PATH: HuggingFace path for STEVE-1 model
-            MINECLIP_WEIGHTS_PATH: Path to MineCLIP weights
-            DEVICE: Compute device (cpu/cuda/mps)
-            VERBOSE: Enable verbose logging (true/false)
-        """
-        gemini_api_key = os.getenv("GEMINI_API_KEY")
-        
-        use_gemini = gemini_api_key is not None
-        if os.getenv("USE_GEMINI_PLANNER") is not None:
-            use_gemini = os.getenv("USE_GEMINI_PLANNER", "").lower() in ("true", "1", "yes")
+
+        use_hf = os.getenv("USE_HF_PLANNER", "false").lower() in ("true", "1", "yes")
         
         use_steve = os.getenv("USE_STEVE_EXECUTOR", "false").lower() in ("true", "1", "yes")
         
@@ -69,30 +42,22 @@ class AlexConfig:
             mineclip_weights = default_path if os.path.exists(default_path) else None
         
         return cls(
-            gemini_api_key=gemini_api_key,
-            use_gemini_planner=use_gemini,
+            use_hf_planner=use_hf,
             use_steve_executor=use_steve,
             steve_model_path=os.getenv("STEVE_MODEL_PATH", cls.steve_model_path),
             mineclip_weights_path=mineclip_weights,
             device=os.getenv("DEVICE"),
+            hf_model_name=os.getenv("HF_MODEL_NAME", cls.hf_model_name),
             verbose=os.getenv("VERBOSE", "true").lower() in ("true", "1", "yes"),
         )
     
     def validate(self) -> list[str]:
-        """
-        Validate configuration and return list of warnings/errors.
-        
-        Returns:
-            List of validation messages (empty if valid)
-        """
+
         issues = []
-        
-        if self.use_gemini_planner and not self.gemini_api_key:
-            issues.append("Gemini planner enabled but GEMINI_API_KEY not set")
         
         if self.use_steve_executor:
             try:
-                import minestudio  # noqa
+                import minestudio
             except ImportError:
                 issues.append("STEVE executor enabled but minestudio not installed")
         
@@ -102,10 +67,9 @@ class AlexConfig:
         return issues
     
     def print_summary(self) -> None:
-        """Print configuration summary."""
         print("=== Alex Configuration ===")
-        print(f"  Gemini Planner: {'✓' if self.use_gemini_planner else '✗'}")
-        print(f"  STEVE Executor: {'✓' if self.use_steve_executor else '✗'}")
+        print(f"  HF Planner: {'enabled' if self.use_hf_planner else 'disabled'}")
+        print(f"  STEVE Executor: {'enabled' if self.use_steve_executor else 'disabled'}")
         print(f"  Device: {self.device or 'auto-detect'}")
         print(f"  Verbose: {self.verbose}")
         
@@ -114,7 +78,7 @@ class AlexConfig:
         
         issues = self.validate()
         if issues:
-            print("\n  ⚠ Configuration Issues:")
+            print("\n  Configuration Issues:")
             for issue in issues:
                 print(f"    - {issue}")
         print("=" * 27)
@@ -124,9 +88,7 @@ _config: Optional[AlexConfig] = None
 
 
 def get_config() -> AlexConfig:
-    """
-    Get or create global configuration instance.
-    """
+
     global _config
     if _config is None:
         _config = AlexConfig.from_env()
@@ -134,9 +96,7 @@ def get_config() -> AlexConfig:
 
 
 def set_config(config: AlexConfig) -> None:
-    """
-    Set global configuration (useful for testing).
-    """
+
     global _config
     _config = config
 

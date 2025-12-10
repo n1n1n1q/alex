@@ -1,37 +1,20 @@
-"""
-Action Prompt Generator
-
-Converts high-level SkillRequests into short, STEVE-1-compatible text prompts.
-
-STEVE-1 requires specific prompt formats:
-- 2-3 word commands
-- Goal-oriented (not pure movement)
-- Minecraft terminology
-- Object-focused behavior
-
-Examples:
-- SkillRequest(name="gather_wood") -> "mine log"
-- SkillRequest(name="hunt_mob", params={"mob": "cow"}) -> "kill cow"
-- SkillRequest(name="craft_table") -> "craft table"
-
-The LLM generates these prompts based on the skill name and parameters,
-using few-shot examples and Minecraft knowledge.
-"""
-
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
 import os
+import torch
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 try:
-    import google.generativeai as genai
-    GEMINI_AVAILABLE = True
+    from transformers import pipeline
+    HF_AVAILABLE = True
 except ImportError:
-    GEMINI_AVAILABLE = False
+    HF_AVAILABLE = False
 
 
 PROMPT_GENERATION_EXAMPLES = """
-# Examples of converting SkillRequests to STEVE-1 prompts:
+Examples of converting SkillRequests to STEVE-1 prompts:
 
 SkillRequest: {"name": "gather_wood", "params": {}}
 STEVE Prompt: mine log
@@ -96,44 +79,45 @@ Convert the SkillRequest to a short STEVE-1 prompt. Return ONLY the prompt, noth
 
 
 class ActionPromptGenerator:
-    """
-    Generates STEVE-1 compatible prompts from SkillRequests using LLM.
-    """
-    
-    def __init__(self, api_key: Optional[str] = None, verbose: bool = True):
-        """
-        Initialize prompt generator.
+
+    def __init__(self, model_name: str = "meta-llama/Llama-3.2-3B-Instruct", device: Optional[str] = None, verbose: bool = True):
+        if not HF_AVAILABLE:
+            raise ImportError("transformers not available. Install with: pip install transformers torch")
         
-        Args:
-            api_key: Gemini API key (defaults to GEMINI_API_KEY env var)
-            verbose: Whether to print thought process
-        """
-        if not GEMINI_AVAILABLE:
-            raise ImportError("google-generativeai not available. Install with: pip install google-generativeai")
-        
-        api_key = api_key or os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY not found in environment")
-        
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel("gemini-2.0-flash-exp")
         self.verbose = verbose
+        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         
+        if self.verbose:
+            print(f"[ActionPromptGenerator] Loading model: {model_name} on {self.device}...")
+        
+        self.pipe = pipeline(
+            "text-generation",
+            model=model_name,
+            device_map=self.device,
+            torch_dtype=torch.bfloat16 if self.device == "cuda" and torch.cuda.is_bf16_supported() else torch.float16,
+            trust_remote_code=True
+        )
+        
+        self.generation_config = {
+            "max_new_tokens": 20,
+            "temperature": 0.3,
+            "top_p": 0.95,
+            "do_sample": True,
+            "return_full_text": False,
+        }
+        
+        self._executor = ThreadPoolExecutor(max_workers=1)
+    
+    def _generate_sync(self, messages):
+        outputs = self.pipe(messages, **self.generation_config)
+        return outputs[0]["generated_text"]
+    
     def generate_prompt(
         self,
         skill_name: str,
         skill_params: Dict[str, Any],
     ) -> str:
-        """
-        Generate STEVE-1 prompt from skill request.
-        
-        Args:
-            skill_name: Name of the skill (e.g., "gather_wood", "hunt_mob")
-            skill_params: Skill parameters (e.g., {"mob": "cow", "count": 5})
-            
-        Returns:
-            Short STEVE-1 prompt (e.g., "mine log", "kill cow")
-        """
+
         if self.verbose:
             print(f"\n[STEVE-1 Prompt Generator]")
             print(f"  Skill: {skill_name}")
@@ -151,19 +135,18 @@ Here are some examples:
 STEVE Prompt:"""
         
         try:
-            response = self.model.generate_content(
-                [
-                    {"role": "user", "parts": [SYSTEM_PROMPT]},
-                    {"role": "model", "parts": ["I understand. I will generate short 2-3 word STEVE-1 prompts that are goal-oriented and use Minecraft terminology."]},
-                    {"role": "user", "parts": [user_prompt]},
-                ],
-                generation_config={
-                    "temperature": 0.3,  # Low temperature for consistency
-                    "max_output_tokens": 20,  # Very short output
-                }
-            )
+            messages = [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt}
+            ]
             
-            prompt = response.text.strip()
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                response_text = self._generate_sync(messages)
+            else:
+                response_text = asyncio.run(loop.run_in_executor(self._executor, self._generate_sync, messages))
+            
+            prompt = response_text.strip()
             
             prompt = prompt.replace('"', '').replace("'", '')
             prompt = prompt.split('\n')[0]
@@ -173,22 +156,20 @@ STEVE Prompt:"""
                 prompt = ' '.join(words[:3])
             
             if self.verbose:
-                print(f"  → Generated STEVE Prompt: '{prompt}'")
+                print(f"  Generated STEVE Prompt: '{prompt}'")
             
             return prompt
             
         except Exception as e:
             if self.verbose:
-                print(f"  ⚠ LLM failed ({e}), using fallback")
+                print(f"  LLM failed ({e}), using fallback")
             fallback = self._fallback_prompt(skill_name, skill_params)
             if self.verbose:
-                print(f"  → Fallback STEVE Prompt: '{fallback}'")
+                print(f"  Fallback STEVE Prompt: '{fallback}'")
             return fallback
     
     def _fallback_prompt(self, skill_name: str, skill_params: Dict[str, Any]) -> str:
-        """
-        Fallback to rule-based prompt generation if LLM fails.
-        """
+
         mapping = {
             "gather_wood": "mine log",
             "collect_wood": "mine log",
@@ -208,5 +189,5 @@ STEVE Prompt:"""
 
 __all__ = [
     "ActionPromptGenerator",
-    "GEMINI_AVAILABLE",
+    "HF_AVAILABLE",
 ]

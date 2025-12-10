@@ -1,24 +1,15 @@
-"""
-Planning components for the Alex agent.
-
-This module contains planner implementations, metaplanner, reflex policy,
-and skill routing logic.
-"""
-
 from .base_planner import BasePlanner
 from .planner import Planner
 from .metaplanner import MetaPlanner
 from .reflex import ReflexPolicy
 from .skill_router import SkillRouter
 
-# Conditional import for Gemini planner
 try:
-    from .planner_gemini import GeminiPlanner, GeminiMCPPlanner
+    from .hf_planner import HuggingFacePlanner
     __all__ = [
         'BasePlanner',
         'Planner',
-        'GeminiPlanner',
-        'GeminiMCPPlanner',
+        'HuggingFacePlanner',
         'MetaPlanner',
         'ReflexPolicy',
         'SkillRouter',

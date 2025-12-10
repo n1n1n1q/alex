@@ -52,18 +52,14 @@ class SceneAnalyzer:
         names = list(queries.keys())
         texts = list(queries.values())
         
-        # Get raw similarity scores
         raw_scores = self.encoder.compute_similarities_batch(image, texts)
         
-        # Create named scores
         scores = {name: round(score, 4) for name, score in zip(names, raw_scores)}
         
-        # Compute probabilities using softmax
         scores_tensor = torch.tensor(raw_scores)
         probs = F.softmax(scores_tensor, dim=0).tolist()
         probabilities = {name: round(prob, 4) for name, prob in zip(names, probs)}
         
-        # Find best match
         best_match = max(scores, key=scores.get)
         best_score = scores[best_match]
         best_prob = probabilities[best_match]
@@ -86,10 +82,8 @@ class SceneAnalyzer:
         Returns:
             Dictionary with comprehensive scene analysis
         """
-        # Get image embedding
         embedding = self.encoder.get_embedding(image)
         
-        # Analyze all categories
         biome_analysis = self.analyze_category("biome", image)
         time_analysis = self.analyze_category("time_of_day", image)
         weather_analysis = self.analyze_category("weather", image)
@@ -99,7 +93,6 @@ class SceneAnalyzer:
         resources_analysis = self.analyze_category("resources", image)
         structures_analysis = self.analyze_category("structures", image)
         
-        # Build comprehensive analysis
         analysis = {
             "summary": {
                 "biome": biome_analysis["best_match"],

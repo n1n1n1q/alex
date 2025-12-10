@@ -30,7 +30,6 @@ except ImportError:
     GEMINI_AVAILABLE = False
 
 
-# Few-shot examples for prompt generation
 PROMPT_GENERATION_EXAMPLES = """
 # Examples of converting SkillRequests to STEVE-1 prompts:
 
@@ -97,7 +96,9 @@ Convert the SkillRequest to a short STEVE-1 prompt. Return ONLY the prompt, noth
 
 
 class ActionPromptGenerator:
-    """Generates STEVE-1 compatible prompts from SkillRequests using LLM."""
+    """
+    Generates STEVE-1 compatible prompts from SkillRequests using LLM.
+    """
     
     def __init__(self, api_key: Optional[str] = None, verbose: bool = True):
         """
@@ -138,7 +139,6 @@ class ActionPromptGenerator:
             print(f"  Skill: {skill_name}")
             print(f"  Params: {skill_params}")
         
-        # Build user prompt
         user_prompt = f"""Convert this SkillRequest to a STEVE-1 prompt:
 
 SkillRequest: {{"name": "{skill_name}", "params": {skill_params}}}
@@ -150,7 +150,6 @@ Here are some examples:
 
 STEVE Prompt:"""
         
-        # Generate with Gemini
         try:
             response = self.model.generate_content(
                 [
@@ -166,14 +165,11 @@ STEVE Prompt:"""
             
             prompt = response.text.strip()
             
-            # Clean up common issues
             prompt = prompt.replace('"', '').replace("'", '')
-            prompt = prompt.split('\n')[0]  # Take first line only
+            prompt = prompt.split('\n')[0]
             
-            # Validate length (should be 2-5 words)
             words = prompt.split()
             if len(words) > 5:
-                # Truncate to first 3 words
                 prompt = ' '.join(words[:3])
             
             if self.verbose:
@@ -184,15 +180,15 @@ STEVE Prompt:"""
         except Exception as e:
             if self.verbose:
                 print(f"  ⚠ LLM failed ({e}), using fallback")
-            # Fallback to simple mapping if LLM fails
             fallback = self._fallback_prompt(skill_name, skill_params)
             if self.verbose:
                 print(f"  → Fallback STEVE Prompt: '{fallback}'")
             return fallback
     
     def _fallback_prompt(self, skill_name: str, skill_params: Dict[str, Any]) -> str:
-        """Fallback to rule-based prompt generation if LLM fails."""
-        # Simple mapping for common skills
+        """
+        Fallback to rule-based prompt generation if LLM fails.
+        """
         mapping = {
             "gather_wood": "mine log",
             "collect_wood": "mine log",
@@ -207,7 +203,7 @@ STEVE Prompt:"""
             "idle_scan": "look around",
         }
         
-        return mapping.get(skill_name, "mine dirt")  # Default fallback
+        return mapping.get(skill_name, "mine dirt")
 
 
 __all__ = [

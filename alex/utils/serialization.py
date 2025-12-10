@@ -49,12 +49,16 @@ def to_serializable(obj: Any) -> Any:
 
 
 def to_json_str(obj: Any, indent: int = 2) -> str:
-    """Convert object to JSON string."""
+    """
+    Convert object to JSON string.
+    """
     return json.dumps(obj, default=to_serializable, ensure_ascii=False, indent=indent)
 
 
 def to_json_file(obj: Any, filepath: str, indent: int = 2) -> None:
-    """Save object to JSON file."""
+    """
+    Save object to JSON file.
+    """
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(obj, f, default=to_serializable, ensure_ascii=False, indent=indent)
 

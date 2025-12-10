@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Dict, Any, Optional
-import os
 
 from .core.types import GameState, SkillResult
 from .core.extractor import extract_state
@@ -11,7 +10,6 @@ from .planning.skill_router import SkillRouter
 from .execution.policy_executor import execute_policy_skill
 from .core.config import get_config
 
-# Conditional imports based on configuration
 _config = get_config()
 
 if _config.use_gemini_planner:
@@ -61,14 +59,11 @@ class Agent:
     def step(self, raw_obs: Dict[str, Any]) -> SkillResult:
         state: GameState = extract_state(raw_obs)
 
-        # Reflex stage: may preempt the planner
         reflex_goal = self.reflex.detect(state)
         if reflex_goal is not None:
             skill_req = self.router.to_skill(reflex_goal)
-            # Pass raw_obs to enable STEVE-1 execution
             return SkillResult(**execute_policy_skill(skill_req, env_obs=raw_obs))
 
-        # Planner + metaplanner
         subgoals = self.planner.plan(state)
         backlog = self.metaplanner.update(subgoals)
         next_goal = self.metaplanner.pop_next()
@@ -76,5 +71,4 @@ class Agent:
             return SkillResult(status="OK", info={"note": "nothing to do"})
 
         skill_req = self.router.to_skill(next_goal)
-        # Pass raw_obs to enable STEVE-1 execution
         return SkillResult(**execute_policy_skill(skill_req, env_obs=raw_obs))

@@ -39,7 +39,9 @@ except ImportError:
 
 
 class CommandCallback(MinecraftCallback):
-    """Injects text command into observations for STEVE-1 conditioning."""
+    """
+    Injects text command into observations for STEVE-1 conditioning.
+    """
     
     def __init__(self, command: str, cond_scale: float = 4.0):
         """
@@ -76,7 +78,9 @@ class CommandCallback(MinecraftCallback):
 
 
 class SteveExecutor:
-    """Executes STEVE-1 policy to generate low-level actions from text commands."""
+    """
+    Executes STEVE-1 policy to generate low-level actions from text commands.
+    """
     
     def __init__(
         self,
@@ -144,19 +148,13 @@ class SteveExecutor:
             "text": text_command
         }
         
-        # Execute policy for max_steps
         actions = []
-        state_in = None  # STEVE-1 hidden state (initialized to None)
+        state_in = None
         
         try:
             for step in range(max_steps):
-                # Get action from STEVE-1 (pass state_in for RNN hidden state)
                 action, state_in = self.policy.get_action(obs, state_in)
                 actions.append(action)
-                
-                # Note: In a real agent loop, you would step the environment here
-                # and update obs. For now, we return the action sequence.
-                # The calling code should integrate with the actual env loop.
                 
             return {
                 "status": "OK",

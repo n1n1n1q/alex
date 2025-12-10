@@ -12,16 +12,10 @@ from abc import ABC, abstractmethod
 from ..core.types import GameState, Subgoal
 
 
-class PlannerProtocol(Protocol):
-    """Protocol for planner implementations."""
-    
-    def plan(self, state: GameState) -> List[Subgoal]:
-        """Generate subgoals from current state."""
-        ...
-
-
 class BasePlanner(ABC):
-    """Base planner with common fallback logic."""
+    """
+    Base planner with common fallback logic.
+    """
     
     @abstractmethod
     def plan(self, state: GameState) -> List[Subgoal]:
@@ -54,4 +48,4 @@ class BasePlanner(ABC):
         return subgoals
 
 
-__all__ = ['BasePlanner', 'PlannerProtocol']
+__all__ = ['BasePlanner']

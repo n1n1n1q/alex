@@ -14,35 +14,29 @@ from typing import Optional
 
 @dataclass
 class AlexConfig:
-    """Central configuration for Alex agent system."""
+    """
+    Central configuration for Alex agent system.
+    """
     
-    # API Keys
     gemini_api_key: Optional[str] = None
     
-    # Feature flags
     use_gemini_planner: bool = False
     use_steve_executor: bool = False
     
-    # Model paths
     steve_model_path: str = "CraftJarvis/MineStudio_STEVE-1.official"
     mineclip_weights_path: Optional[str] = None
     
-    # Device configuration
-    device: Optional[str] = None  # None = auto-detect
+    device: Optional[str] = None
     
-    # Execution parameters
     steve_default_cond_scale: float = 5.0
     steve_default_max_steps: int = 100
     
-    # Gemini parameters
     gemini_model_name: str = "gemini-2.0-flash-exp"
     gemini_temperature: float = 0.7
     gemini_max_tokens: int = 1024
     
-    # MCP server
     mcp_server_path: str = "mcp_server.py"
     
-    # Logging
     verbose: bool = True
     
     @classmethod
@@ -61,7 +55,6 @@ class AlexConfig:
         """
         gemini_api_key = os.getenv("GEMINI_API_KEY")
         
-        # Auto-enable features based on API key availability
         use_gemini = gemini_api_key is not None
         if os.getenv("USE_GEMINI_PLANNER") is not None:
             use_gemini = os.getenv("USE_GEMINI_PLANNER", "").lower() in ("true", "1", "yes")
@@ -70,7 +63,6 @@ class AlexConfig:
         
         mineclip_weights = os.getenv("MINECLIP_WEIGHTS_PATH")
         if mineclip_weights is None:
-            # Default to ../models/avg.pth relative to this file
             default_path = os.path.abspath(os.path.join(
                 os.path.dirname(__file__), '../models/avg.pth'
             ))
@@ -128,12 +120,13 @@ class AlexConfig:
         print("=" * 27)
 
 
-# Global config instance (lazy loaded)
 _config: Optional[AlexConfig] = None
 
 
 def get_config() -> AlexConfig:
-    """Get or create global configuration instance."""
+    """
+    Get or create global configuration instance.
+    """
     global _config
     if _config is None:
         _config = AlexConfig.from_env()
@@ -141,7 +134,9 @@ def get_config() -> AlexConfig:
 
 
 def set_config(config: AlexConfig) -> None:
-    """Set global configuration (useful for testing)."""
+    """
+    Set global configuration (useful for testing).
+    """
     global _config
     _config = config
 

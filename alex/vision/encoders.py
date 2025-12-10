@@ -36,7 +36,6 @@ class MineCLIPEncoder:
         self.model = model
         self.device = device
         
-        # Image preprocessing transform
         self.transform = T.Compose([
             T.Resize((160, 256)),
         ])
@@ -61,10 +60,8 @@ class MineCLIPEncoder:
         """
         image = self.transform(image)
         
-        # Convert to tensor [C, H, W] with values in [0, 255]
         image_tensor = torch.from_numpy(np.array(image)).permute(2, 0, 1).float()
         
-        # Add batch and sequence dimensions: [1, 1, C, H, W]
         image_tensor = image_tensor.unsqueeze(0).unsqueeze(0).to(self.device)
         
         with torch.no_grad():
@@ -117,11 +114,9 @@ class MineCLIPEncoder:
         image_emb = self.encode_image(image)
         text_emb = self.encode_text(text)
         
-        # Normalize embeddings
         image_emb = F.normalize(image_emb, dim=-1)
         text_emb = F.normalize(text_emb, dim=-1)
         
-        # Compute scaled similarity
         logit_scale = self.model.clip_model.logit_scale.exp()
         similarity = (logit_scale * (image_emb @ text_emb.T)).squeeze().item()
         return similarity
@@ -144,11 +139,9 @@ class MineCLIPEncoder:
         image_emb = self.encode_image(image)
         image_emb = F.normalize(image_emb, dim=-1)
         
-        # Encode all texts in batch
         text_embs = self.encode_text_batch(texts)
         text_embs = F.normalize(text_embs, dim=-1)
         
-        # Compute scaled similarities
         logit_scale = self.model.clip_model.logit_scale.exp()
         similarities = (logit_scale * (image_emb @ text_embs.T)).squeeze()
         

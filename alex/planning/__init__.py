@@ -5,7 +5,7 @@ This module contains planner implementations, metaplanner, reflex policy,
 and skill routing logic.
 """
 
-from .base_planner import BasePlanner, PlannerProtocol
+from .base_planner import BasePlanner
 from .planner import Planner
 from .metaplanner import MetaPlanner
 from .reflex import ReflexPolicy
@@ -16,7 +16,6 @@ try:
     from .planner_gemini import GeminiPlanner, GeminiMCPPlanner
     __all__ = [
         'BasePlanner',
-        'PlannerProtocol',
         'Planner',
         'GeminiPlanner',
         'GeminiMCPPlanner',
@@ -27,7 +26,6 @@ try:
 except ImportError:
     __all__ = [
         'BasePlanner',
-        'PlannerProtocol',
         'Planner',
         'MetaPlanner',
         'ReflexPolicy',

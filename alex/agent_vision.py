@@ -47,7 +47,6 @@ class AgentVision:
             weights_path: Path to MineCLIP weights. If None, defaults to ../models/avg.pth
             device: Device to run on ('cpu', 'cuda', 'mps'). Auto-detects if None.
         """
-        # Auto-detect device
         if device is None:
             if torch.cuda.is_available():
                 device = "cuda"
@@ -57,23 +56,19 @@ class AgentVision:
                 device = "cpu"
         self.device = device
         
-        # Default weights path
         if weights_path is None:
             weights_path = os.path.abspath(os.path.join(
                 os.path.dirname(__file__), 
                 '../models/avg.pth'
             ))
         else:
-            # Ensure absolute path
             weights_path = os.path.abspath(weights_path)
         
-        # Determine pool type from weights filename
         if "avg" in os.path.basename(weights_path).lower():
             pool_type = "avg"
         else:
             pool_type = "attn.d2.nh8.glusw"
         
-        # Initialize MineCLIP model
         self.model = MineCLIP(
             arch="vit_base_p16_fz.v2.t2",
             resolution=(160, 256),
@@ -83,7 +78,6 @@ class AgentVision:
             hidden_dim=512,
         ).to(device)
         
-        # Load weights
         if os.path.exists(weights_path):
             self.model.load_ckpt(weights_path, strict=True)
             print(f"✓ Loaded MineCLIP weights: {weights_path}")
@@ -93,7 +87,6 @@ class AgentVision:
         
         self.model.eval()
         
-        # Initialize modular components (exposed for direct access)
         self.encoder = MineCLIPEncoder(self.model, device)
         self.scene_analyzer = SceneAnalyzer(self.encoder)
         self.spatial_attention = SpatialAttentionMap(self.model, device)
@@ -115,10 +108,8 @@ class AgentVision:
             - spatial: Spatial object detection with locations
             - combined_context: Human-readable text combining both analyses
         """
-        # Get global scene analysis
         global_analysis = self.scene_analyzer.analyze_comprehensive(image)
         
-        # Get spatial analysis with default queries
         from .vision.vision_queries import SPATIAL_QUERIES
         image_tensor = self.encoder.preprocess_image_to_tensor(image)
         spatial_analysis = self.spatial_attention.analyze_spatial(
@@ -130,7 +121,6 @@ class AgentVision:
             return_grids=False
         )
         
-        # Combine results
         return {
             "global": global_analysis,
             "spatial": spatial_analysis,

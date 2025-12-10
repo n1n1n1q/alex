@@ -6,7 +6,8 @@ from typing import Any, Dict, List, Optional
 
 @dataclass
 class GameState:
-    """State snapshot of the Minecraft environment.
+    """
+    State snapshot of the Minecraft environment.
 
     env_state: biome id plus rainfall/temperature, sky & block light, rain flag, sea level, whether the sky is visible, sun brightness
     player_pos: agent's coordinates plus yaw/pitch
@@ -43,7 +44,8 @@ class GameState:
 
 @dataclass
 class Subgoal:
-    """A structured subgoal produced by the Planner.
+    """
+    A structured subgoal produced by the Planner.
 
     name: canonical id (e.g., "collect_wood", "craft_table")
     params: goal-specific args (e.g., count=8)
@@ -56,7 +58,8 @@ class Subgoal:
 
 @dataclass
 class SkillRequest:
-    """Request to execute a micro-skill.
+    """
+    Request to execute a micro-skill.
 
     Typically derived from a Subgoal by the SkillRouter.
     """

@@ -15,10 +15,7 @@ class MetaPlanner:
         self.backlog: List[Subgoal] = []
 
     def update(self, new_subgoals: List[Subgoal]) -> List[Subgoal]:
-        # Replace backlog with new subgoals from planner
-        # The planner is the source of truth based on current state
         self.backlog = list(new_subgoals)
-        # Simple prioritization
         self.backlog.sort(key=lambda s: s.priority, reverse=True)
         return list(self.backlog)
 

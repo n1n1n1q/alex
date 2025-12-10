@@ -31,27 +31,22 @@ class SpatialAttentionMap:
         self.model = mineclip_model
         self.device = device
         
-        # Image dimensions for MineCLIP
         self.img_height = 160
         self.img_width = 256
         self.patch_size = 16
         
-        # Resulting patch grid dimensions
-        self.grid_rows = self.img_height // self.patch_size  # 10
-        self.grid_cols = self.img_width // self.patch_size   # 16
+        self.grid_rows = self.img_height // self.patch_size
+        self.grid_cols = self.img_width // self.patch_size
         
-        # 4x4 Grid mapping for LLM
         self.semantic_grid_size = 4
         
-        # Depth zones (row ranges in 10x16 grid)
         self.depth_zones = {
-            "Sky/Ceiling": (0, 2),    # Top rows 0-2
-            "Horizon/Far": (3, 5),    # Middle-top rows 3-5
-            "Ground/Mid": (6, 7),     # Middle-bottom rows 6-7
-            "Feet/Close": (8, 9)      # Bottom rows 8-9
+            "Sky/Ceiling": (0, 2),
+            "Horizon/Far": (3, 5),
+            "Ground/Mid": (6, 7),
+            "Feet/Close": (8, 9)
         }
         
-        # Horizontal zones (column ranges in 10x16 grid)
         self.horizontal_zones = {
             "Left": (0, 3),
             "Center-Left": (4, 7),
@@ -70,43 +65,34 @@ class SpatialAttentionMap:
             Patch embeddings [B, num_patches, dim]
         """
         with torch.no_grad():
-            # Preprocess the image with MineCLIP normalization
             MC_IMAGE_MEAN = (0.3331, 0.3245, 0.3051)
             MC_IMAGE_STD = (0.2439, 0.2493, 0.2873)
             
-            # Normalize
             mean = torch.tensor(MC_IMAGE_MEAN).view(1, 3, 1, 1).to(image_tensor.device)
             std = torch.tensor(MC_IMAGE_STD).view(1, 3, 1, 1).to(image_tensor.device)
             image_normalized = (image_tensor - mean) / std
             
-            # Access the vision transformer (image encoder)
             vision_model = self.model.image_encoder
             
-            # Forward through patch embedding layer
-            x = vision_model.conv1(image_normalized)  # [batch, width, grid_h, grid_w]
+            x = vision_model.conv1(image_normalized)
             B = x.size(0)
-            x = x.reshape(B, x.shape[1], -1)  # [batch, width, grid_h * grid_w]
-            x = x.permute(0, 2, 1)  # [batch, num_patches, width]
+            x = x.reshape(B, x.shape[1], -1)
+            x = x.permute(0, 2, 1)
             
-            # Add CLS token and positional embeddings
             x = torch.cat(
                 [vision_model.cls_token.repeat((B, 1, 1)), x], dim=1
-            )  # [batch, num_patches + 1, width]
+            )
             x = x + vision_model.pos_embed
             
-            # Pass through transformer blocks
             x = vision_model.ln_pre(x)
-            x = x.permute(1, 0, 2)  # NLD -> LND (for transformer)
+            x = x.permute(1, 0, 2)
             x = vision_model.blocks(x)
-            x = x.permute(1, 0, 2)  # LND -> NLD
+            x = x.permute(1, 0, 2)
             
-            # Apply layer norm
             x = vision_model.ln_post(x)
             
-            # Remove CLS token (index 0) - we only want spatial patches
-            patch_embeddings = x[:, 1:, :]  # [batch, num_patches, width]
+            patch_embeddings = x[:, 1:, :]
             
-            # Project to output dimension (512) to match text embedding space
             if vision_model.projection is not None:
                 patch_embeddings = patch_embeddings @ vision_model.projection
             
@@ -133,16 +119,13 @@ class SpatialAttentionMap:
         """
         batch_size = patch_embeddings.shape[0]
         
-        # Reshape to spatial grid
         grid_tokens = patch_embeddings.reshape(
             batch_size, self.grid_rows, self.grid_cols, -1
-        )  # [batch, 10, 16, dim]
+        )
         
-        # Normalize embeddings
         grid_tokens_norm = F.normalize(grid_tokens, dim=-1)
         text_embeddings_norm = F.normalize(text_embeddings, dim=-1)
         
-        # Compute similarity
         similarity_maps = torch.einsum(
             'brhd,qd->bqrh', 
             grid_tokens_norm, 
@@ -168,19 +151,18 @@ class SpatialAttentionMap:
         """
         grid_4x4 = torch.zeros(4, 4, device=similarity_map.device)
         
-        # Define ranges for 4x4 grid
         depth_ranges = [
-            (0, 3),   # Sky/Ceiling
-            (3, 6),   # Horizon/Far
-            (6, 8),   # Ground/Mid
-            (8, 10)   # Feet/Close
+            (0, 3),
+            (3, 6),
+            (6, 8),
+            (8, 10)
         ]
         
         horiz_ranges = [
-            (0, 4),    # Left
-            (4, 8),    # Center-Left
-            (8, 12),   # Center-Right
-            (12, 16)   # Right
+            (0, 4),
+            (4, 8),
+            (8, 12),
+            (12, 16)
         ]
         
         for i, (row_start, row_end) in enumerate(depth_ranges):
@@ -259,17 +241,14 @@ class SpatialAttentionMap:
         Returns:
             Dictionary with spatial analysis results
         """
-        # Get patch embeddings
         patch_embeddings = self.get_patch_embeddings(image_tensor)
         
-        # Encode text queries
         with torch.no_grad():
             text_tokens = tokenize_batch(
                 text_queries, max_length=77, language_model="clip"
             ).to(self.device)
             text_embeddings = self.model.encode_text(text_tokens)
         
-        # Compute similarity maps
         similarity_maps = self.compute_similarity_maps(
             patch_embeddings, 
             text_embeddings,
@@ -277,13 +256,11 @@ class SpatialAttentionMap:
             temperature=temperature
         )
         
-        # Downsample to 4x4 grids
-        similarity_maps = similarity_maps[0]  # Remove batch dim
+        similarity_maps = similarity_maps[0]
         grids_4x4 = {}
         for i, query in enumerate(text_queries):
             grids_4x4[query] = self.downsample_to_4x4(similarity_maps[i])
         
-        # Generate description
         description = self.generate_spatial_description(grids_4x4, threshold, top_k=3)
         
         result = {

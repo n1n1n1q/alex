@@ -22,11 +22,9 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 import time
 
-# Import SkillRequest from types module instead of redefining it
 from ..core.types import SkillRequest
 from ..core.config import get_config
 
-# Check configuration
 _config = get_config()
 _STEVE_READY = False
 
@@ -40,13 +38,14 @@ if _config.use_steve_executor:
         GEMINI_AVAILABLE = False
 
 
-# Module-level instances (created once, not singletons with global state)
 _steve_executor: Optional[Any] = None
 _prompt_generator: Optional[Any] = None
 
 
 def _get_steve_executor():
-    """Get or create STEVE executor instance."""
+    """
+    Get or create STEVE executor instance.
+    """
     global _steve_executor
     if _steve_executor is None and _STEVE_READY:
         _steve_executor = SteveExecutor(
@@ -58,7 +57,9 @@ def _get_steve_executor():
 
 
 def _get_prompt_generator():
-    """Get or create prompt generator instance."""
+    """
+    Get or create prompt generator instance.
+    """
     global _prompt_generator
     if _prompt_generator is None and _STEVE_READY:
         _prompt_generator = ActionPromptGenerator(
@@ -106,16 +107,12 @@ def execute_policy_skill(
             if executor is None or generator is None:
                 raise RuntimeError("Failed to initialize STEVE components")
             
-            # Step 1: Generate STEVE-1 prompt using LLM
             steve_prompt = generator.generate_prompt(request.name, request.params)
             
-            # Step 2: Calculate max_steps from timeout_ms
-            max_steps = 100  # default
+            max_steps = 100
             if request.timeout_ms:
-                # Rough estimate: 20ms per step in Minecraft
                 max_steps = min(max(request.timeout_ms // 20, 10), 500)
             
-            # Step 3: Execute STEVE-1 policy
             result = executor.execute(
                 text_command=steve_prompt,
                 env_obs=env_obs,
@@ -149,11 +146,8 @@ def execute_policy_skill(
                 "low_level_actions": [],
             }
     
-    # Placeholder path (original behavior)
-    # A tiny sleep to emulate "policy thinking" without blocking too long.
     time.sleep(min((request.timeout_ms or 10) / 1000.0, 0.01))
 
-    # A generic no-op action that many env wrappers tolerate for stepping.
     low_level_actions = [
         {"camera": [0.0, 0.0], "attack": 0, "back": 0, "forward": 0, "jump": 0,
          "left": 0, "right": 0, "sneak": 0, "sprint": 0, "use": 0, "place": 0}

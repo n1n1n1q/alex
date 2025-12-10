@@ -7,8 +7,6 @@ from ..core.types import Subgoal, SkillRequest
 
 class SkillRouter:
     """Map planner subgoals to concrete micro-skills (policy names).
-
-    This is where naming conventions and parameter shaping live.
     """
 
     def to_skill(self, subgoal: Subgoal) -> SkillRequest:

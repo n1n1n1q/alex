@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from minestudio.online.rollout.start_manager import start_rolloutmanager
 from minestudio.online.trainer.start_trainer import start_trainer
 from omegaconf import OmegaConf
@@ -9,14 +11,14 @@ online_dict = {
     "detach_rollout_manager": True,
     "rollout_config": {
     "num_rollout_workers": 1,
-    "num_gpus_per_worker": 1,
+    "num_gpus_per_worker": 0.1,
     "num_cpus_per_worker": 1,
     "fragment_length": 256,
     "to_send_queue_size": 6,
     "worker_config": {
         "num_envs": 2,
         "batch_size": 2,
-        "restart_interval": 180,  # 1h
+        "restart_interval": 60,  # 1h
         "video_fps": 20,
         "video_output_dir": "output/videos",
     },
@@ -35,17 +37,17 @@ online_dict = {
     },
     "train_config": {
         "num_workers": 1,
-        "num_gpus_per_worker": 0,
+        "num_gpus_per_worker": 0.5,
         "num_cpus_per_worker": 1,
-        "num_iterations": 4000,
+        "num_iterations": 500,
         "vf_warmup": 0,
         "learning_rate": 0.00002,
-        "anneal_lr_linearly": "",
+        "anneal_lr_linearly": False,
         "weight_decay": 0.04,
         "adam_eps": 1e-8,
         "batch_size_per_gpu": 1,
-        "batches_per_iteration": 200,
-        "gradient_accumulation": 10, 
+        "batches_per_iteration": 10,
+        "gradient_accumulation": 1, 
         "epochs_per_iteration": 1, 
         "context_length": 64,
         "discount": 0.999,
@@ -56,7 +58,7 @@ online_dict = {
         "zero_initial_vf": True,
         "ppo_policy_coef": 1.0,
         "ppo_vf_coef": 0.5, 
-        "kl_divergence_coef_rho": 0.2,
+        "kl_divergence_coef_rho": 0.1,
         "entropy_bonus_coef": 0.0,
         "coef_rho_decay": 0.9995,
         "log_ratio_range": 50,  
@@ -65,8 +67,8 @@ online_dict = {
         "num_readers": 4,
         "num_cpus_per_reader": 0.1,
         "prefetch_batches": 2,
-        "save_interval": 10,
-        "keep_interval": 40,
+        "save_interval": 1,
+        "keep_interval": 1,
         "record_video_interval": 2,
         "fix_decoder": False,
         "resume": None, 
@@ -84,8 +86,7 @@ online_dict = {
 
 if __name__ == "__main__":
 
-    with open("/alex/examples/training/test_train.py", 'r', encoding="utf8") as f:
-        whole_config = f.read()
+    whole_config = Path(__file__).resolve().read_text(encoding="utf8")
 
     online_config = OmegaConf.create(online_dict)
     start_rolloutmanager(policy_generator, env_generator, online_config)

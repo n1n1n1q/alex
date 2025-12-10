@@ -1,4 +1,4 @@
-# ALEX 1.0: Minecraft RL-micro and LLM-macro management AI agent
+# <img src="assets/alex.png" alt="ALEX Icon" width="28" style="vertical-align: middle;"/> ALEX 1.0: Minecraft RL-micro and LLM-macro management AI agent
 ## Environment setup
 1. Build docker with   
 ```bash
@@ -12,5 +12,5 @@ chmod +x docker/build.sh
   
 ```bash
 chmod +x docker/run.sh
-./run.sh {--reset/-r to reset the environment}
+./docker/run.sh {--reset/-r to reset the environment}
 ```

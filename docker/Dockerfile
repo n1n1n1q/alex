@@ -35,7 +35,7 @@ RUN pip install --upgrade pip && \
     pip install git+https://github.com/annastasyshyn/MineStudio.git@master && \
     python -m minestudio.simulator.entry -y
 
-RUN git clone -b rl/basic_policies https://github.com/n1n1n1q/alex.git /alex
+RUN git clone https://github.com/n1n1n1q/alex.git /alex
 
 RUN mkdir -p /etc/apt/keyrings
 RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg

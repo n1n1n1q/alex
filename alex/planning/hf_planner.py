@@ -1,7 +1,8 @@
+import re
+import ray
 import json
 import asyncio
 import torch
-import re
 from typing import List, Dict, Any, Optional
 from concurrent.futures import ThreadPoolExecutor
 
@@ -17,7 +18,7 @@ class HuggingFacePlanner(BasePlanner):
 
     def __init__(
         self, 
-        model_name: str = "meta-llama/Llama-3.2-3B-Instruct",
+        model_name: str = "Qwen/Qwen2.5-1.5B-Instruct",
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
         mcp_server_path: str = "mcp_server.py",
         verbose: bool = True
@@ -29,13 +30,8 @@ class HuggingFacePlanner(BasePlanner):
         if self.verbose:
             print(f"[{self.__class__.__name__}] Loading model: {model_name} on {device}...")
 
-        self.pipe = pipeline(
-            "text-generation",
-            model=model_name,
-            device_map=device,
-            torch_dtype=torch.bfloat16 if device == "cuda" and torch.cuda.is_bf16_supported() else torch.float16,
-            trust_remote_code=True
-        )
+        self.model_name = model_name
+        self.pipe = None
 
         self.generation_config = {
             "max_new_tokens": 1024,
@@ -45,13 +41,28 @@ class HuggingFacePlanner(BasePlanner):
             "return_full_text": False,
         }
 
-        self.server_params = StdioServerParameters(
-            command="python",
-            args=[mcp_server_path],
-            env=None
-        )
-        
-        self._executor = ThreadPoolExecutor(max_workers=1)
+        self.server_params = None
+        self._executor = None
+
+    def _ensure_resources(self):
+        if self.pipe is None:
+            self.pipe = pipeline(
+                "text-generation",
+                model=self.model_name,
+                device_map=self.device,
+                torch_dtype=torch.bfloat16 if self.device == "cuda" and torch.cuda.is_bf16_supported() else torch.float16,
+                trust_remote_code=True
+            )
+
+        if self.server_params is None:
+            self.server_params = StdioServerParameters(
+                command="python",
+                args=[mcp_server_path],
+                env=None
+            )
+ 
+        if self._executor is None:
+            self._executor = ThreadPoolExecutor(max_workers=1)
 
     def _state_to_dict(self, state: GameState) -> Dict[str, Any]:
 

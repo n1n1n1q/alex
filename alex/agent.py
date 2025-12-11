@@ -66,17 +66,19 @@ class VerboseAgent(Agent):
         state = extract_state(raw_obs)
         
         print(f"  [Reflex] Checking for urgent situations...")
-        reflex_goal = self.reflex.detect(state)
-        if reflex_goal is not None:
-            print(f"  [Reflex] TRIGGERED: {reflex_goal}")
-            skill_req = self.router.to_skill(reflex_goal)
-            print(f"  [Router] Mapped to skill: {skill_req}")
-            result = execute_policy_skill(skill_req, env_obs=raw_obs)
-            print(f"  [Executor] Result: {result.get('status', 'unknown')}")
-            return SkillResult(**result)
+        # reflex_goal = self.reflex.detect(state)
+        # if reflex_goal is not None:
+        #     print(f"  [Reflex] TRIGGERED: {reflex_goal}")
+        #     skill_req = self.router.to_skill(reflex_goal)
+        #     print(f"  [Router] Mapped to skill: {skill_req}")
+        #     result = execute_policy_skill(skill_req, env_obs=raw_obs)
+        #     print(f"  [Executor] Result: {result.get('status', 'unknown')}")
+        #     return SkillResult(**result)
         
         print(f"  [Reflex] No urgent situations detected")
         
+        print(f"  [Planner] Ensuring resources are loaded...")
+        self.planner._ensure_resources()
         print(f"  [Planner] Analyzing state and generating subgoals...")
         subgoals = self.planner.plan(state)
         print(f"  [Planner] Generated {len(subgoals)} subgoal(s):")

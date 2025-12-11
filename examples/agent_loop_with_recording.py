@@ -13,65 +13,9 @@ from minestudio.simulator.callbacks import MinecraftCallback, SpeedTestCallback,
 from minestudio.models import SteveOnePolicy
 from minestudio.inference import EpisodePipeline, MineGenerator
 
-from alex.agent import Agent
+from alex.agent import Agent, VerboseAgent
 from alex.core.extractor import extract_state
 
-
-class VerboseAgent(Agent):
-
-    def step(self, raw_obs):
-
-        state = extract_state(raw_obs)
-        
-        print(f"  [Reflex] Checking for urgent situations...")
-        reflex_goal = self.reflex.detect(state)
-        if reflex_goal is not None:
-            print(f"  [Reflex] TRIGGERED: {reflex_goal}")
-            skill_req = self.router.to_skill(reflex_goal)
-            print(f"  [Router] Mapped to skill: {skill_req}")
-            from alex.execution.policy_executor import execute_policy_skill
-            result = execute_policy_skill(skill_req, env_obs=raw_obs)
-            print(f"  [Executor] Result: {result.get('status', 'unknown')}")
-            from alex.core.types import SkillResult
-            return SkillResult(**result)
-        
-        print(f"  [Reflex] No urgent situations detected")
-        
-        print(f"  [Planner] Analyzing state and generating subgoals...")
-        subgoals = self.planner.plan(state)
-        print(f"  [Planner] Generated {len(subgoals)} subgoal(s):")
-        for sg in subgoals:
-            print(f"    - {sg.name} (priority={sg.priority}, params={sg.params})")
-        
-        print(f"  [MetaPlanner] Updating backlog...")
-        backlog = self.metaplanner.update(subgoals)
-        print(f"  [MetaPlanner] Current backlog ({len(backlog)} items):")
-        for i, sg in enumerate(backlog[:5], 1):
-            print(f"    {i}. {sg.name} (priority={sg.priority})")
-        if len(backlog) > 5:
-            print(f"    ... and {len(backlog) - 5} more")
-        
-        next_goal = self.metaplanner.pop_next()
-        if next_goal is None:
-            print(f"  [MetaPlanner] No goals in backlog - nothing to do")
-            from alex.core.types import SkillResult
-            return SkillResult(status="OK", info={"note": "nothing to do"})
-        
-        print(f"  [MetaPlanner] Selected next goal: {next_goal.name}")
-        
-        print(f"  [Router] Routing goal to skill...")
-        skill_req = self.router.to_skill(next_goal)
-        print(f"  [Router] Skill request: {skill_req}")
-        
-        print(f"  [Executor] Executing skill...")
-        from alex.execution.policy_executor import execute_policy_skill
-        result = execute_policy_skill(skill_req, env_obs=raw_obs)
-        print(f"  [Executor] Status: {result.get('status', 'unknown')}")
-        if 'steve_prompt' in result:
-            print(f"  [Executor] STEVE-1 Prompt: '{result['steve_prompt']}'")
-        
-        from alex.core.types import SkillResult
-        return SkillResult(**result)
 
 
 class AlexAgentCallback(MinecraftCallback):
@@ -408,8 +352,8 @@ def run_simple_loop_no_pipeline(
 if __name__ == "__main__":
     run_agent_with_recording(
         description="wood_and_crafting_table",
-        num_episodes=3,
-        max_steps=3000,
+        num_episodes=1,
+        max_steps=1000,
         update_interval=50,
         cond_scale=5.0,
         verbose=True,

@@ -44,7 +44,7 @@ SkillRequest: {"name": "gather_food", "params": {}}
 STEVE Prompt: kill chicken
 
 SkillRequest: {"name": "retreat", "params": {}}
-STEVE Prompt: escape danger
+STEVE Prompt: do last task
 
 SkillRequest: {"name": "collect_wood", "params": {}}
 STEVE Prompt: obtain log
@@ -179,7 +179,7 @@ STEVE Prompt:"""
             "hunt_mob": f"kill {skill_params.get('mob', 'cow')}",
             "fight_mob": f"kill {skill_params.get('mob', 'zombie')}",
             "gather_food": "kill chicken",
-            "retreat": "escape danger",
+            "retreat": "do last task",
             "build_shelter": "place blocks",
             "idle_scan": "look around",
         }

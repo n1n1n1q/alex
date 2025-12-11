@@ -3,6 +3,8 @@ import ray
 import json
 import asyncio
 import torch
+import sys
+import os
 from typing import List, Dict, Any, Optional
 from concurrent.futures import ThreadPoolExecutor
 
@@ -20,12 +22,13 @@ class HuggingFacePlanner(BasePlanner):
         self, 
         model_name: str = "Qwen/Qwen2.5-1.5B-Instruct",
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
-        mcp_server_path: str = "mcp_server.py",
+        mcp_server_path: str = "alex.prompts.mcp_server",
         verbose: bool = True
     ):
         
         self.verbose = verbose
         self.device = device
+        self.mcp_server_path = mcp_server_path
         
         if self.verbose:
             print(f"[{self.__class__.__name__}] Loading model: {model_name} on {device}...")
@@ -46,19 +49,25 @@ class HuggingFacePlanner(BasePlanner):
 
     def _ensure_resources(self):
         if self.pipe is None:
+            # select device index for transformers.pipeline: 0 for cuda, -1 for cpu
+            device_index = 0 if self.device == "cuda" else -1
+            dtype = torch.bfloat16 if self.device == "cuda" and torch.cuda.is_bf16_supported() else torch.float16
+
             self.pipe = pipeline(
                 "text-generation",
                 model=self.model_name,
-                device_map=self.device,
-                torch_dtype=torch.bfloat16 if self.device == "cuda" and torch.cuda.is_bf16_supported() else torch.float16,
+                device=device_index,
+                dtype=dtype,
                 trust_remote_code=True
             )
 
         if self.server_params is None:
+            # ensure module path uses dots and use the same python executable as the current process
+            module_path = self.mcp_server_path.replace('/', '.')
             self.server_params = StdioServerParameters(
-                command="python",
-                args=[mcp_server_path],
-                env=None
+                command=sys.executable,
+                args=['-m', module_path],
+                env=os.environ.copy()
             )
  
         if self._executor is None:

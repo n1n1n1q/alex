@@ -119,7 +119,7 @@ def execute_policy_skill(
     note = "RL skill executor is a placeholder"
     
     if not _config.use_steve_executor:
-        note += " (USE_STEVE_EXECUTOR not enabled)"
+        note += " (use_steve_executor not enabled in config)"
     elif not _STEVE_READY:
         note += " (STEVE components not available)"
     elif env_obs is None:

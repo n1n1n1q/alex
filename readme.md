@@ -6,7 +6,7 @@ chmod +x docker/build.sh
 ./docker/build.sh
 ```
 
-2. Put WANDB_API_KEY into `.env` file
+2. Edit Hydra config at `conf/config.yaml` to set planner/manager/executor options (no environment variables required).
 
 3. Run the environment with
   

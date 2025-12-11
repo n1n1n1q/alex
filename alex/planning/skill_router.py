@@ -16,6 +16,9 @@ class SkillRouter:
             "idle_scan": "idle_scan",
             "emergency_retreat": "retreat",
             "seek_shelter": "build_shelter",
+            "block_in": "build_shelter",
+            "eat_food": "gather_food",
+            "fight_mob": "fight_mob",
         }
         skill_name = mapping.get(subgoal.name, subgoal.name)
         return SkillRequest(name=skill_name, params=subgoal.params)

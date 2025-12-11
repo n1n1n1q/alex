@@ -1,4 +1,3 @@
-import os
 import json
 import asyncio
 import sys
@@ -6,15 +5,14 @@ import torch
 from transformers import pipeline
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-from dotenv import load_dotenv
-
-load_dotenv()
+from alex.core.config import get_config
 
 
 async def demonstrate_flow():
 
-    model_name = os.getenv("HF_MODEL_NAME", "meta-llama/Llama-3.2-3B-Instruct")
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    cfg = get_config()
+    model_name = cfg.hf_model_name
+    device = cfg.device or ("cuda" if torch.cuda.is_available() else "cpu")
     
     print(f"Loading model: {model_name} on {device}...")
     
@@ -27,8 +25,8 @@ async def demonstrate_flow():
     )
     
     generation_config = {
-        "max_new_tokens": 2048,
-        "temperature": 0.7,
+        "max_new_tokens": cfg.hf_max_tokens,
+        "temperature": cfg.hf_temperature,
         "top_p": 0.95,
         "do_sample": True,
         "return_full_text": False,
@@ -36,7 +34,7 @@ async def demonstrate_flow():
     
     server_params = StdioServerParameters(
         command=sys.executable,
-        args=["alex/prompts/mcp_server.py"],
+        args=[cfg.mcp_server_path],
         env=None
     )
     

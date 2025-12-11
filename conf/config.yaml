@@ -1,0 +1,27 @@
+defaults:
+  - _self_
+
+# Planner / manager selection
+use_hf_planner: true
+use_hf_reflex_manager: true
+use_steve_executor: true
+
+# Model + device settings
+steve_model_path: "CraftJarvis/MineStudio_STEVE-1.official"
+mineclip_weights_path: null  # will fall back to bundled avg.pth if present
+device: cuda  # "cuda" | "cpu" | null (auto)
+
+steve_default_cond_scale: 5.0
+steve_default_max_steps: 100
+
+hf_model_name: "Qwen/Qwen2.5-1.5B-Instruct"
+hf_temperature: 0.6
+hf_max_tokens: 1024
+hf_reflex_model_name: null
+hf_reflex_temperature: 0.35
+hf_reflex_max_tokens: 96
+
+mcp_server_path: "mcp_server.py"
+
+verbose: true
+

@@ -4,7 +4,8 @@ from ..core.types import GameState, Subgoal
 
 
 class ReflexPolicy:
-    """Fast, local decision maker for urgent reactions.
+    """
+    Fast, local decision maker for urgent reactions.
     """
 
     def detect(self, state: GameState) -> Subgoal | None:

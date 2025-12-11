@@ -25,7 +25,7 @@ if _config.use_hf_planner:
 else:
     from .planning.planner import Planner
     if _config.verbose:
-        print("Using simple rule-based planner (set USE_HF_PLANNER=true to use HuggingFace)")
+        print("Using simple rule-based planner (enable use_hf_planner in config to use HuggingFace)")
 
 if _config.use_hf_reflex_manager:
     try:
@@ -40,7 +40,7 @@ if _config.use_hf_reflex_manager:
 else:
     from .planning.reflex import ReflexPolicy as ReflexManager
     if _config.verbose:
-        print("Using simple rule-based reflex (set USE_HF_REFLEX_MANAGER=true to use HuggingFace)")
+        print("Using simple rule-based reflex (enable use_hf_reflex_manager in config to use HuggingFace)")
 
 
 class Agent:

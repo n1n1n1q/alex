@@ -1,0 +1,27 @@
+defaults:
+  - _self_
+
+# Planner / manager selection
+use_hf_planner: false
+use_hf_reflex_manager: false
+use_steve_executor: false
+
+# Model + device settings
+steve_model_path: "CraftJarvis/MineStudio_STEVE-1.official"
+mineclip_weights_path: null  # will fall back to bundled avg.pth if present
+device: null  # "cuda" | "cpu" | null (auto)
+
+steve_default_cond_scale: 5.0
+steve_default_max_steps: 100
+
+hf_model_name: "meta-llama/Llama-3.2-3B-Instruct"
+hf_temperature: 0.6
+hf_max_tokens: 1024
+hf_reflex_model_name: null
+hf_reflex_temperature: 0.35
+hf_reflex_max_tokens: 96
+
+mcp_server_path: "mcp_server.py"
+
+verbose: true
+

@@ -23,7 +23,7 @@ class AlexConfig:
     steve_default_cond_scale: float = 5.0
     steve_default_max_steps: int = 100
 
-    hf_model_name: str = "meta-llama/Llama-3.2-3B-Instruct"
+    hf_model_name: str = "Qwen/Qwen2.5-1.5B-Instruct"
     hf_temperature: float = 0.6
     hf_max_tokens: int = 1024
     hf_reflex_model_name: Optional[str] = None
@@ -44,7 +44,7 @@ class AlexConfig:
         """
         Load configuration from Hydra YAML (no environment variable side-effects).
         """
-        base_dir = config_dir or Path(__file__).resolve().parent.parent / "conf"
+        base_dir = config_dir or Path(__file__).resolve().parent.parent.parent / "conf"
 
         with initialize_config_dir(config_dir=str(base_dir), version_base=None):
             cfg = compose(config_name=config_name, overrides=list(overrides or []))

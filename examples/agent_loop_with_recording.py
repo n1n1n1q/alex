@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 from pathlib import Path
 from datetime import datetime
 from functools import partial
@@ -15,6 +16,7 @@ from minestudio.inference import EpisodePipeline, MineGenerator
 
 from alex.agent import Agent, VerboseAgent
 from alex.core.extractor import extract_state
+from alex.utils.serialization import to_serializable
 
 
 
@@ -23,7 +25,8 @@ class AlexAgentCallback(MinecraftCallback):
     def __init__(self, 
                  update_interval: int = 50,
                  cond_scale: float = 5.0,
-                 verbose: bool = True):
+                 verbose: bool = True,
+                 output_dir: str = None):
 
         super().__init__()
         self.agent = VerboseAgent() if verbose else Agent()
@@ -32,6 +35,41 @@ class AlexAgentCallback(MinecraftCallback):
         self.verbose = verbose
         self.timestep = 0
         self.current_command = "explore around"
+        self.output_dir = output_dir
+        self.states_log = []
+        self.prompts_log = []
+        
+    def _save_state(self, state, step: int, phase: str):
+        """Save extracted game state to log."""
+        state_entry = {
+            "step": step,
+            "phase": phase,
+            "timestamp": datetime.now().isoformat(),
+            "state": to_serializable(state)
+        }
+        self.states_log.append(state_entry)
+        
+        # Save incrementally if output_dir is set
+        if self.output_dir:
+            states_file = os.path.join(self.output_dir, "game_states.json")
+            with open(states_file, 'w', encoding='utf-8') as f:
+                json.dump(self.states_log, f, indent=2, ensure_ascii=False)
+    
+    def _save_prompt(self, prompt: str, step: int, phase: str):
+        """Save STEVE-1 prompt to log."""
+        prompt_entry = {
+            "step": step,
+            "phase": phase,
+            "timestamp": datetime.now().isoformat(),
+            "prompt": prompt
+        }
+        self.prompts_log.append(prompt_entry)
+        
+        # Save incrementally if output_dir is set
+        if self.output_dir:
+            prompts_file = os.path.join(self.output_dir, "prompts.json")
+            with open(prompts_file, 'w', encoding='utf-8') as f:
+                json.dump(self.prompts_log, f, indent=2, ensure_ascii=False)
         
     def after_reset(self, sim, obs, info):
 
@@ -43,6 +81,9 @@ class AlexAgentCallback(MinecraftCallback):
             print("="*80)
             
             state = extract_state(info)
+            
+            # Save extracted state
+            self._save_state(state, self.timestep, "reset")
             
             print(f"\n[STATE] Inventory: {state.inventory_agg if state.inventory_agg else {}}")
             health_str = f"{state.health:.1f}" if state.health is not None else "N/A"
@@ -67,6 +108,9 @@ class AlexAgentCallback(MinecraftCallback):
             elif self.current_command == "explore around":
                 print(f"\n[STEVE-1] Default command: '{self.current_command}'")
             
+            # Save the prompt
+            self._save_prompt(self.current_command, self.timestep, "reset")
+            
             print("="*80 + "\n")
             
         except Exception as e:
@@ -74,6 +118,7 @@ class AlexAgentCallback(MinecraftCallback):
             import traceback
             traceback.print_exc()
             self.current_command = "explore around"
+            self._save_prompt(self.current_command, self.timestep, "reset_fallback")
         
         if 'condition' not in obs:
             obs['condition'] = {}
@@ -95,6 +140,9 @@ class AlexAgentCallback(MinecraftCallback):
                 print("="*80)
                 
                 state = extract_state(info)
+                
+                # Save extracted state
+                self._save_state(state, self.timestep, "replan")
                 
                 print(f"\n[STATE] Inventory: {state.inventory_agg if state.inventory_agg else {}}")
                 health_str = f"{state.health:.1f}" if state.health is not None else "N/A"
@@ -136,6 +184,9 @@ class AlexAgentCallback(MinecraftCallback):
                         print(f"\n[STEVE-1] Execution failed, keeping: '{self.current_command}'")
                     else:
                         print(f"\n[STEVE-1] No new command, continuing: '{self.current_command}'")
+                
+                # Save the prompt
+                self._save_prompt(self.current_command, self.timestep, "replan")
                 
                 print("="*80 + "\n")
                         
@@ -198,7 +249,8 @@ def run_agent_with_recording(
                 AlexAgentCallback(
                     update_interval=update_interval,
                     cond_scale=cond_scale,
-                    verbose=verbose
+                    verbose=verbose,
+                    output_dir=output_dir
                 ),
                 RecordCallback(
                     record_path=output_dir,
@@ -302,7 +354,8 @@ def run_simple_loop_no_pipeline(
             AlexAgentCallback(
                 update_interval=update_interval,
                 cond_scale=cond_scale,
-                verbose=verbose
+                verbose=verbose,
+                output_dir=output_dir
             ),
             RecordCallback(
                 record_path=output_dir,

@@ -9,6 +9,7 @@ from typing import Optional
 class AlexConfig:
 
     use_hf_planner: bool = False
+    use_hf_reflex_manager: bool = False
     use_steve_executor: bool = False
     
     steve_model_path: str = "CraftJarvis/MineStudio_STEVE-1.official"
@@ -22,6 +23,9 @@ class AlexConfig:
     hf_model_name: str = "meta-llama/Llama-3.2-3B-Instruct"
     hf_temperature: float = 0.6
     hf_max_tokens: int = 1024
+    hf_reflex_model_name: Optional[str] = None
+    hf_reflex_temperature: float = 0.35
+    hf_reflex_max_tokens: int = 96
     
     mcp_server_path: str = "mcp_server.py"
     
@@ -31,6 +35,7 @@ class AlexConfig:
     def from_env(cls) -> AlexConfig:
 
         use_hf = os.getenv("USE_HF_PLANNER", "false").lower() in ("true", "1", "yes")
+        use_hf_reflex = os.getenv("USE_HF_REFLEX_MANAGER", "false").lower() in ("true", "1", "yes")
         
         use_steve = os.getenv("USE_STEVE_EXECUTOR", "false").lower() in ("true", "1", "yes")
         
@@ -43,11 +48,15 @@ class AlexConfig:
         
         return cls(
             use_hf_planner=use_hf,
+            use_hf_reflex_manager=use_hf_reflex,
             use_steve_executor=use_steve,
             steve_model_path=os.getenv("STEVE_MODEL_PATH", cls.steve_model_path),
             mineclip_weights_path=mineclip_weights,
             device=os.getenv("DEVICE"),
             hf_model_name=os.getenv("HF_MODEL_NAME", cls.hf_model_name),
+            hf_reflex_model_name=os.getenv("HF_REFLEX_MODEL_NAME"),
+            hf_reflex_temperature=float(os.getenv("HF_REFLEX_TEMPERATURE", cls.hf_reflex_temperature)),
+            hf_reflex_max_tokens=int(os.getenv("HF_REFLEX_MAX_TOKENS", cls.hf_reflex_max_tokens)),
             verbose=os.getenv("VERBOSE", "true").lower() in ("true", "1", "yes"),
         )
     
@@ -69,6 +78,7 @@ class AlexConfig:
     def print_summary(self) -> None:
         print("=== Alex Configuration ===")
         print(f"  HF Planner: {'enabled' if self.use_hf_planner else 'disabled'}")
+        print(f"  HF Reflex Manager: {'enabled' if self.use_hf_reflex_manager else 'disabled'}")
         print(f"  STEVE Executor: {'enabled' if self.use_steve_executor else 'disabled'}")
         print(f"  Device: {self.device or 'auto-detect'}")
         print(f"  Verbose: {self.verbose}")

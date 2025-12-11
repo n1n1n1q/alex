@@ -5,8 +5,8 @@ from typing import Dict, Any, Optional
 from .core.types import GameState, SkillResult
 from .core.extractor import extract_state
 from .planning.metaplanner import MetaPlanner
-from .planning.reflex import ReflexPolicy
 from .planning.skill_router import SkillRouter
+from .planning.reflex import ReflexPolicy
 from .execution.policy_executor import execute_policy_skill
 from .core.config import get_config
 
@@ -27,6 +27,21 @@ else:
     if _config.verbose:
         print("Using simple rule-based planner (set USE_HF_PLANNER=true to use HuggingFace)")
 
+if _config.use_hf_reflex_manager:
+    try:
+        from .planning.hf_reflex_manager import HuggingFaceReflexManager as ReflexManager
+        if _config.verbose:
+            print("Using HuggingFace-based reflex manager")
+    except ImportError as e:
+        if _config.verbose:
+            print(f"Failed to import HuggingFaceReflexManager: {e}")
+            print("  Falling back to simple rule-based reflex")
+        from .planning.reflex import ReflexPolicy as ReflexManager
+else:
+    from .planning.reflex import ReflexPolicy as ReflexManager
+    if _config.verbose:
+        print("Using simple rule-based reflex (set USE_HF_REFLEX_MANAGER=true to use HuggingFace)")
+
 
 class Agent:
 
@@ -38,7 +53,7 @@ class Agent:
         router: Optional[SkillRouter] = None,
     ) -> None:
 
-        self.reflex = reflex or ReflexPolicy()
+        self.reflex = reflex or ReflexManager()
         self.planner = planner or Planner()
         self.metaplanner = metaplanner or MetaPlanner()
         self.router = router or SkillRouter()

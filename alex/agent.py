@@ -64,7 +64,18 @@ class Agent:
         reflex_goal = self.reflex.detect(state)
         if reflex_goal is not None:
             skill_req = self.router.to_skill(reflex_goal)
-            return SkillResult(**execute_policy_skill(skill_req, env_obs=raw_obs))
+            result = execute_policy_skill(skill_req, env_obs=raw_obs)
+            
+            # Add reflex response to result if available
+            if hasattr(self.reflex, '_last_raw_response') and self.reflex._last_raw_response:
+                if 'info' not in result:
+                    result['info'] = {}
+                result['info']['reflex_response'] = {
+                    'raw': self.reflex._last_raw_response,
+                    'parsed': getattr(self.reflex, '_last_parsed_response', None)
+                }
+            
+            return SkillResult(**result)
 
         subgoals = self.planner.plan(state)
         backlog = self.metaplanner.update(subgoals)
@@ -73,7 +84,19 @@ class Agent:
             return SkillResult(status="OK", info={"note": "nothing to do"})
 
         skill_req = self.router.to_skill(next_goal)
-        return SkillResult(**execute_policy_skill(skill_req, env_obs=raw_obs))
+        result = execute_policy_skill(skill_req, env_obs=raw_obs)
+        
+        # Add planner response to result if available
+        if hasattr(self.planner, '_last_raw_response') and self.planner._last_raw_response:
+            if 'info' not in result:
+                result['info'] = {}
+            result['info']['raw_model_response'] = self.planner._last_raw_response
+            result['info']['parsed_plan'] = {
+                'cleaned_json': getattr(self.planner, '_last_cleaned_response', None),
+                'subgoals': [{'name': sg.name, 'priority': sg.priority, 'params': sg.params} for sg in subgoals]
+            }
+        
+        return SkillResult(**result)
 
 
 class VerboseAgent(Agent):
@@ -124,5 +147,15 @@ class VerboseAgent(Agent):
         print(f"  [Executor] Status: {result.get('status', 'unknown')}")
         if result.get('info', {}).get('steve_prompt'):
             print(f"  [Executor] STEVE-1 Prompt: '{result['info']['steve_prompt']}'")
+        
+        # Add planner response to result if available
+        if hasattr(self.planner, '_last_raw_response') and self.planner._last_raw_response:
+            if 'info' not in result:
+                result['info'] = {}
+            result['info']['raw_model_response'] = self.planner._last_raw_response
+            result['info']['parsed_plan'] = {
+                'cleaned_json': getattr(self.planner, '_last_cleaned_response', None),
+                'subgoals': [{'name': sg.name, 'priority': sg.priority, 'params': sg.params} for sg in subgoals]
+            }
         
         return SkillResult(**result)

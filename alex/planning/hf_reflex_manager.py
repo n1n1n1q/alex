@@ -64,6 +64,10 @@ class HuggingFaceReflexManager:
         }
 
         self.fallback_reflex = ReflexPolicy()
+        
+        # Store last responses for logging
+        self._last_raw_response = None
+        self._last_parsed_response = None
 
         self.system_prompt = (
             "You are a fast, risk-averse reflex manager for a Minecraft agent. "
@@ -99,6 +103,10 @@ class HuggingFaceReflexManager:
             raw_text = outputs[0]["generated_text"]
             cleaned = self._extract_json(raw_text)
             parsed = json.loads(cleaned)
+            
+            # Store responses for logging
+            self._last_raw_response = raw_text
+            self._last_parsed_response = parsed
 
             action = str(parsed.get("action", "none")).strip().lower()
             params = parsed.get("params", {}) or {}

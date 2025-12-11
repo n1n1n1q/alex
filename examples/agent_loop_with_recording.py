@@ -38,6 +38,7 @@ class AlexAgentCallback(MinecraftCallback):
         self.output_dir = output_dir
         self.states_log = []
         self.prompts_log = []
+        self.responses_log = []
         
     def _save_state(self, state, step: int, phase: str):
         """Save extracted game state to log."""
@@ -70,6 +71,23 @@ class AlexAgentCallback(MinecraftCallback):
             prompts_file = os.path.join(self.output_dir, "prompts.json")
             with open(prompts_file, 'w', encoding='utf-8') as f:
                 json.dump(self.prompts_log, f, indent=2, ensure_ascii=False)
+    
+    def _save_model_response(self, response_data: dict, step: int, phase: str, response_type: str):
+        """Save model response (from planner or reflex manager) to log."""
+        response_entry = {
+            "step": step,
+            "phase": phase,
+            "response_type": response_type,  # 'planner' or 'reflex'
+            "timestamp": datetime.now().isoformat(),
+            "response": response_data
+        }
+        self.responses_log.append(response_entry)
+        
+        # Save incrementally if output_dir is set
+        if self.output_dir:
+            responses_file = os.path.join(self.output_dir, "model_responses.json")
+            with open(responses_file, 'w', encoding='utf-8') as f:
+                json.dump(self.responses_log, f, indent=2, ensure_ascii=False)
         
     def after_reset(self, sim, obs, info):
 
@@ -92,8 +110,21 @@ class AlexAgentCallback(MinecraftCallback):
             print(f"[STATE] Nearby mobs: {len(state.mobs) if state.mobs else 0}")
             print(f"[STATE] Nearby blocks: {len(state.blocks) if state.blocks else 0}")
             
-            print(f"\n[AGENT] Processing state through pipeline...")
+            print(f"[AGENT] Processing state through pipeline...")
             action = self.agent.step(obs)
+            
+            # Save model response if available
+            if hasattr(action, 'info') and action.info:
+                model_response = {}
+                if 'raw_model_response' in action.info:
+                    model_response['raw'] = action.info['raw_model_response']
+                if 'parsed_plan' in action.info:
+                    model_response['parsed_plan'] = action.info['parsed_plan']
+                if 'reflex_response' in action.info:
+                    model_response['reflex'] = action.info['reflex_response']
+                if model_response:
+                    response_type = 'reflex' if 'reflex_response' in action.info else 'planner'
+                    self._save_model_response(model_response, self.timestep, "reset", response_type)
             
             print(f"[AGENT] Action status: {action.status}")
             if hasattr(action, 'info') and action.info:
@@ -158,6 +189,19 @@ class AlexAgentCallback(MinecraftCallback):
                 
                 print(f"\n[AGENT] Running planner...")
                 action = self.agent.step(obs)
+                
+                # Save model response if available
+                if hasattr(action, 'info') and action.info:
+                    model_response = {}
+                    if 'raw_model_response' in action.info:
+                        model_response['raw'] = action.info['raw_model_response']
+                    if 'parsed_plan' in action.info:
+                        model_response['parsed_plan'] = action.info['parsed_plan']
+                    if 'reflex_response' in action.info:
+                        model_response['reflex'] = action.info['reflex_response']
+                    if model_response:
+                        response_type = 'reflex' if 'reflex_response' in action.info else 'planner'
+                        self._save_model_response(model_response, self.timestep, "replan", response_type)
                 
                 print(f"[AGENT] Action status: {action.status}")
                 if hasattr(action, 'info') and action.info:
@@ -406,8 +450,8 @@ if __name__ == "__main__":
     run_agent_with_recording(
         description="wood_and_crafting_table",
         num_episodes=1,
-        max_steps=1000,
-        update_interval=50,
+        max_steps=100,
+        update_interval=10,
         cond_scale=5.0,
         verbose=True,
     )

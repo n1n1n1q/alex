@@ -35,6 +35,10 @@ class HuggingFacePlanner(BasePlanner):
 
         self.model_name = model_name
         self.pipe = None
+        
+        # Store last responses for logging
+        self._last_raw_response = None
+        self._last_cleaned_response = None
 
         self.generation_config = {
             "max_new_tokens": 1024,
@@ -149,6 +153,10 @@ class HuggingFacePlanner(BasePlanner):
                     
                     raw_response = await self._generate_hf(system_instruction, mcp_prompt)
                     cleaned_json_str = self._clean_json_output(raw_response)
+                    
+                    # Store raw response for logging
+                    self._last_raw_response = raw_response
+                    self._last_cleaned_response = cleaned_json_str
 
                     if self.verbose:
                         print(f"\n[Model Response]")

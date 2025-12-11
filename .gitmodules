@@ -1,3 +1,6 @@
 [submodule "submodules/MineCLIP"]
 	path = submodules/MineCLIP
 	url = https://github.com/annastasyshyn/MineCLIP.git
+[submodule "submodules/MineStudio"]
+	path = submodules/MineStudio
+	url = https://github.com/annastasyshyn/MineStudio

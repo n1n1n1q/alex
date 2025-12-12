@@ -140,11 +140,14 @@ STEVE Prompt:"""
                 {"role": "user", "content": user_prompt}
             ]
             
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
+            try:
+                loop = asyncio.get_running_loop()
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    future = pool.submit(self._generate_sync, messages)
+                    response_text = future.result()
+            except RuntimeError:
                 response_text = self._generate_sync(messages)
-            else:
-                response_text = asyncio.run(loop.run_in_executor(self._executor, self._generate_sync, messages))
             
             prompt = response_text.strip()
             

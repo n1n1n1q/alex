@@ -69,7 +69,7 @@ class AlexAgentCallback(MinecraftCallback):
             self._log(f"[STATE] Nearby blocks: {len(state.blocks) if state.blocks else 0}")
         
             self._log(f"\n[AGENT] Processing state through pipeline...")
-            action = self.agent.step(obs)
+            action = self.agent.step(info, state)
             
             self._log(f"[AGENT] Action status: {action.status}")
             if hasattr(action, 'info') and action.info:
@@ -122,7 +122,7 @@ class AlexAgentCallback(MinecraftCallback):
                 self._log(f"[STATE] Nearby blocks: {len(state.blocks) if state.blocks else 0}")
                 
                 self._log(f"\n[AGENT] Running planner...")
-                action = self.agent.step(obs)
+                action = self.agent.step(info, state)
                 
                 self._log(f"[AGENT] Action status: {action.status}")
                 if hasattr(action, 'info') and action.info:

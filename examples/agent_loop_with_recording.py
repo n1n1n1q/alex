@@ -188,9 +188,8 @@ class AlexAgentCallback(MinecraftCallback):
                 print(f"[STATE] Nearby blocks: {len(state.blocks) if state.blocks else 0}")
                 
                 print(f"\n[AGENT] Running planner...")
-                action = self.agent.step(obs)
+                action = self.agent.step(info, state)
                 
-                # Save model response if available
                 if hasattr(action, 'info') and action.info:
                     model_response = {}
                     if 'raw_model_response' in action.info:
@@ -450,8 +449,8 @@ if __name__ == "__main__":
     run_agent_with_recording(
         description="wood_and_crafting_table",
         num_episodes=1,
-        max_steps=100,
-        update_interval=10,
+        max_steps=1000,
+        update_interval=100,
         cond_scale=5.0,
         verbose=True,
     )

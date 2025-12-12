@@ -4,6 +4,7 @@ import json
 import time
 import asyncio
 import torch
+import numpy as np
 import sys
 import os
 from typing import List, Dict, Any, Optional
@@ -81,6 +82,21 @@ class HuggingFacePlanner(BasePlanner):
         if self._executor is None:
             self._executor = ThreadPoolExecutor(max_workers=1)
 
+    def _convert_to_serializable(self, obj):
+        """Convert numpy arrays and other non-serializable types to Python native types"""
+        if isinstance(obj, np.ndarray):
+            # Convert numpy array to native Python type
+            if obj.size == 1:
+                return obj.item()  # Convert single-element array to scalar
+            return obj.tolist()  # Convert multi-element array to list
+        elif isinstance(obj, (np.integer, np.floating)):
+            return obj.item()  # Convert numpy scalar to Python scalar
+        elif isinstance(obj, dict):
+            return {k: self._convert_to_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [self._convert_to_serializable(item) for item in obj]
+        return obj
+
     def _state_to_dict(self, state: GameState) -> Dict[str, Any]:
 
         state_dict = {
@@ -95,6 +111,9 @@ class HuggingFacePlanner(BasePlanner):
         
         if hasattr(state, 'extras') and state.extras and 'vision' in state.extras:
             state_dict['vision'] = state.extras['vision']
+        
+        # Convert any numpy arrays or non-serializable types
+        state_dict = self._convert_to_serializable(state_dict)
         
         return {k: v for k, v in state_dict.items() if v is not None}
     
@@ -136,8 +155,16 @@ class HuggingFacePlanner(BasePlanner):
         print(">>> [STATE DICT]", state_dict)
 
         try:
+            if self.verbose:
+                print(f"\n[MCP] Starting server: {self.server_params.command} {' '.join(self.server_params.args)}")
+            
             async with stdio_client(self.server_params) as (read, write):
+                if self.verbose:
+                    print(f"[MCP] Server started, creating session...")
+                
                 async with ClientSession(read, write) as session:
+                    if self.verbose:
+                        print(f"[MCP] Session created, initializing...")
                     await session.initialize()
                     
 
@@ -209,10 +236,26 @@ class HuggingFacePlanner(BasePlanner):
                 import traceback
                 traceback.print_exc()
 
-                for i, sub_exc in enumerate(e.exceptions):
-                    print(f"--- Sub-exception {i+1} ---")
-                    #This prints the full traceback of the hidden error
-                    traceback.print_exception(type(sub_exc), sub_exc, sub_exc.__traceback__)
+                # Handle ExceptionGroup (Python 3.11+) or BaseExceptionGroup - can be nested
+                def print_exception_group(exc, level=0):
+                    if hasattr(exc, 'exceptions'):
+                        for i, sub_exc in enumerate(exc.exceptions, 1):
+                            indent = "  " * level
+                            print(f"{indent}--- Sub-exception {i} (level {level}) ---")
+                            traceback.print_exception(type(sub_exc), sub_exc, sub_exc.__traceback__)
+                            
+                            # Check for common MCP issues
+                            err_str = str(sub_exc).lower()
+                            if 'modulenotfounderror' in str(type(sub_exc)).lower() or 'no module' in err_str:
+                                print(f"\n{indent}⚠️  Module import error detected.")
+                                print(f"{indent}   Error: {sub_exc}")
+                                if 'mcp' in err_str:
+                                    print(f"{indent}   Install: pip install mcp>=0.9.0 fastmcp>=0.2.0")
+                            
+                            # Recursively handle nested exception groups
+                            print_exception_group(sub_exc, level + 1)
+                
+                print_exception_group(e)
                 
                 print(f"[Fallback] Using simple rule-based planning")
                 print(f"{'='*70}\n")
@@ -222,8 +265,24 @@ class HuggingFacePlanner(BasePlanner):
             return self.fallback_plan(state)
     
     def plan(self, state: GameState) -> List[Subgoal]:
-
-        return asyncio.run(self.plan_async(state))
+        try:
+            # Check if there's already an event loop running
+            try:
+                loop = asyncio.get_running_loop()
+                # If we're in an async context, create a task
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    future = pool.submit(asyncio.run, self.plan_async(state))
+                    return future.result()
+            except RuntimeError:
+                # No event loop running, safe to use asyncio.run
+                return asyncio.run(self.plan_async(state))
+        except Exception as e:
+            if self.verbose:
+                print(f"[ERROR] Failed to run async planning: {e}")
+                import traceback
+                traceback.print_exc()
+            return self.fallback_plan(state)
     
     def _plan_to_subgoals(self, plan: Dict[str, Any]) -> List[Subgoal]:
 

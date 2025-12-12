@@ -58,15 +58,15 @@ class Agent:
         self.metaplanner = metaplanner or MetaPlanner()
         self.router = router or SkillRouter()
 
-    def step(self, raw_obs: Dict[str, Any]) -> SkillResult:
-        state: GameState = extract_state(raw_obs)
+    def step(self, raw_obs: Dict[str, Any], state: Optional[GameState] = None) -> SkillResult:
+        if state is None:
+            state: GameState = extract_state(raw_obs)
 
         reflex_goal = self.reflex.detect(state)
         if reflex_goal is not None:
             skill_req = self.router.to_skill(reflex_goal)
             result = execute_policy_skill(skill_req, env_obs=raw_obs)
             
-            # Add reflex response to result if available
             if hasattr(self.reflex, '_last_raw_response') and self.reflex._last_raw_response:
                 if 'info' not in result:
                     result['info'] = {}

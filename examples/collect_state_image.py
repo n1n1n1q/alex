@@ -1,5 +1,5 @@
 import numpy as np
-from alex.extractor import extract_state, state_to_json_file, extract_pov, pov_to_image_file
+from alex.core.extractor import extract_state, state_to_json_file, extract_pov, pov_to_image_file
 from minestudio.simulator import MinecraftSim
 from minestudio.simulator.callbacks import (
     SummonMobsCallback, 

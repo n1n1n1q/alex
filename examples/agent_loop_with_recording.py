@@ -111,7 +111,7 @@ class AlexAgentCallback(MinecraftCallback):
             print(f"[STATE] Nearby blocks: {len(state.blocks) if state.blocks else 0}")
             
             print(f"[AGENT] Processing state through pipeline...")
-            action = self.agent.step(obs)
+            action = self.agent.step(obs, state)
             
             # Save model response if available
             if hasattr(action, 'info') and action.info:

@@ -1,6 +1,7 @@
 import re
 import ray
 import json
+import time
 import asyncio
 import torch
 import sys
@@ -57,6 +58,7 @@ class HuggingFacePlanner(BasePlanner):
             device_index = 0 if self.device == "cuda" else -1
             dtype = torch.bfloat16 if self.device == "cuda" and torch.cuda.is_bf16_supported() else torch.float16
 
+
             self.pipe = pipeline(
                 "text-generation",
                 model=self.model_name,
@@ -64,10 +66,12 @@ class HuggingFacePlanner(BasePlanner):
                 dtype=dtype,
                 trust_remote_code=True
             )
+            time.sleep(10)
 
         if self.server_params is None:
             # ensure module path uses dots and use the same python executable as the current process
             module_path = self.mcp_server_path.replace('/', '.')
+            print(">>>>", module_path)
             self.server_params = StdioServerParameters(
                 command=sys.executable,
                 args=['-m', module_path],
@@ -121,25 +125,29 @@ class HuggingFacePlanner(BasePlanner):
     async def plan_async(self, state: GameState) -> List[Subgoal]:
 
         state_dict = self._state_to_dict(state)
-        
+
         if self.verbose:
             print(f"\n{'='*70}")
             print(f"HF TRANSFORMERS PLANNER - Thinking...")
             print(f"{'='*70}")
             print(f"[Input State]")
             print(f"  Inventory: {state_dict.get('inventory', {})}")
-            
+        
+        print(">>> [STATE DICT]", state_dict)
+
         try:
             async with stdio_client(self.server_params) as (read, write):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     
+
                     result = await session.call_tool(
                         "plan_actions",
                         arguments={"game_state": state_dict}
                     )
                     
                     mcp_prompt = result.content[0].text
+
                     
                     if self.verbose:
                         print(f"\n[MCP Prompt] (first 200 chars)")
@@ -200,6 +208,12 @@ class HuggingFacePlanner(BasePlanner):
                 print(f"\n[ERROR] HF planning failed: {e}")
                 import traceback
                 traceback.print_exc()
+
+                for i, sub_exc in enumerate(e.exceptions):
+                    print(f"--- Sub-exception {i+1} ---")
+                    #This prints the full traceback of the hidden error
+                    traceback.print_exception(type(sub_exc), sub_exc, sub_exc.__traceback__)
+                
                 print(f"[Fallback] Using simple rule-based planning")
                 print(f"{'='*70}\n")
             else:

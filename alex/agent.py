@@ -100,9 +100,7 @@ class Agent:
 
 
 class VerboseAgent(Agent):
-    def step(self, raw_obs: Dict[str, Any]) -> SkillResult:
-        state = extract_state(raw_obs)
-        
+    def step(self, raw_obs: Dict[str, Any], state: GameState) -> SkillResult:
         print(f"  [Reflex] Checking for urgent situations...")
         # reflex_goal = self.reflex.detect(state)
         # if reflex_goal is not None:
@@ -118,6 +116,9 @@ class VerboseAgent(Agent):
         print(f"  [Planner] Ensuring resources are loaded...")
         self.planner._ensure_resources()
         print(f"  [Planner] Analyzing state and generating subgoals...")
+
+        print(">>> [STATE AT VERBOSE AGENT]", state)
+
         subgoals = self.planner.plan(state)
         print(f"  [Planner] Generated {len(subgoals)} subgoal(s):")
         for sg in subgoals:

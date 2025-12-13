@@ -9,7 +9,7 @@ class WikiRetriever:
         print("[RAG] Loading Wiki Dataset...")
         # Using full=False downloads 'wiki_samples' (smaller) for testing. 
         # Set full=True for the complete wiki.
-        self.dataset = WikiDataset(full=False) 
+        self.dataset = WikiDataset(full=True) 
         
         if self.use_vector_db:
             self._setup_vector_db()

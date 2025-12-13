@@ -7,9 +7,18 @@ class WikiRetriever:
         self.collection = None
         
         print("[RAG] Loading Wiki Dataset...")
+
+        repo_root = os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(os.path.abspath(__file__))
+            )
+        )
         # Using full=False downloads 'wiki_samples' (smaller) for testing. 
         # Set full=True for the complete wiki.
-        self.dataset = WikiDataset(full=False) 
+        self.dataset = WikiDataset(
+            download_dir=os.path.join(repo_root, "data"),
+            full=False
+        ) 
         
         if self.use_vector_db:
             self._setup_vector_db()

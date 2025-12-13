@@ -17,7 +17,7 @@ class WikiRetriever:
         # Set full=True for the complete wiki.
         self.dataset = WikiDataset(
             download_dir=os.path.join(repo_root, "data"),
-            full=False
+            full=True
         ) 
         
         if self.use_vector_db:

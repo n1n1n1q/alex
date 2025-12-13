@@ -91,6 +91,8 @@ def plan_actions(game_state: dict) -> str:
                     unique_items.add(item["name"])
                     search_queries.append(f"{item['name']} usage")
 
+        print(f"[RAG] Planning prompt queries: {search_queries}")
+
     # Execute Search
         wiki_context = []
         for q in search_queries:
@@ -103,6 +105,8 @@ def plan_actions(game_state: dict) -> str:
             for info in wiki_context:
                 prompt += f"- {info}\n"
             prompt += "\n"
+
+            print(f"[RAG] Wiki context added to planning prompt.")
 
     if MEMORY_BUFFER:
         prompt += "=== PREVIOUS HISTORY (Short-term Memory) ===\n"

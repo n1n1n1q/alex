@@ -102,6 +102,7 @@ class Agent:
 class VerboseAgent(Agent):
     def step(self, raw_obs: Dict[str, Any], state: GameState) -> SkillResult:
         print(f"  [Reflex] Checking for urgent situations...")
+
         # reflex_goal = self.reflex.detect(state)
         # if reflex_goal is not None:
         #     print(f"  [Reflex] TRIGGERED: {reflex_goal}")
@@ -117,8 +118,6 @@ class VerboseAgent(Agent):
         self.planner._ensure_resources()
         print(f"  [Planner] Analyzing state and generating subgoals...")
 
-        print(">>> [STATE AT VERBOSE AGENT]", state)
-
         subgoals = self.planner.plan(state)
         print(f"  [Planner] Generated {len(subgoals)} subgoal(s):")
         for sg in subgoals:
@@ -126,6 +125,7 @@ class VerboseAgent(Agent):
         
         print(f"  [MetaPlanner] Updating backlog...")
         backlog = self.metaplanner.update(subgoals)
+
         print(f"  [MetaPlanner] Current backlog ({len(backlog)} items):")
         for i, sg in enumerate(backlog[:5], 1):
             print(f"    {i}. {sg.name} (priority={sg.priority})")
@@ -144,7 +144,9 @@ class VerboseAgent(Agent):
         print(f"  [Router] Skill request: {skill_req}")
         
         print(f"  [Executor] Executing skill...")
-        result = execute_policy_skill(skill_req, env_obs=raw_obs)
+
+        result = {'info': {'steve_prompt': 'mine logs'}, 'status': "SUCCESS"}
+
         print(f"  [Executor] Status: {result.get('status', 'unknown')}")
         if result.get('info', {}).get('steve_prompt'):
             print(f"  [Executor] STEVE-1 Prompt: '{result['info']['steve_prompt']}'")

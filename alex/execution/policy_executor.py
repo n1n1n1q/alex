@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import torch
+
+import numpy as np
 from typing import Any, Dict, Optional
 import time
 
@@ -64,19 +67,21 @@ def execute_policy_skill(
     if _STEVE_READY and env_obs is not None:
         try:
             executor = _get_steve_executor()
-            generator = _get_prompt_generator()
+            # generator = _get_prompt_generator()
             
-            if executor is None or generator is None:
+            if executor is None:
                 raise RuntimeError("Failed to initialize STEVE components")
             
-            steve_prompt = generator.generate_prompt(request.name, request.params)
+            steve_prompt = request.name #generator.generate_prompt(request.name, request.params)
             
             max_steps = 100
             if request.timeout_ms:
                 max_steps = min(max(request.timeout_ms // 20, 10), 500)
-            
+
+            env_obs['image'] = torch.from_numpy(env_obs['image']).permute(2,0,1)
+
             result = executor.execute(
-                text_command=steve_prompt,
+                text_command=request.name,
                 env_obs=env_obs,
                 max_steps=max_steps,
                 cond_scale=_config.steve_default_cond_scale,
@@ -88,11 +93,15 @@ def execute_policy_skill(
             result["info"]["skill_params"] = request.params
             result["info"]["steve_prompt"] = steve_prompt
             result["info"]["execution_mode"] = "STEVE-1"
-            
+            print(">>> Immediate result", result) 
             return result
             
         except Exception as e:
             elapsed_ms = int((time.time() - start) * 1000)
+
+            import traceback
+            traceback.print_exc()
+
             return {
                 "status": "FAILED",
                 "info": {

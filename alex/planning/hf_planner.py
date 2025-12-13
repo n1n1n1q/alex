@@ -181,7 +181,7 @@ class HuggingFacePlanner(BasePlanner):
                         print(f"{mcp_prompt[:200]}...")
                     
                     system_instruction = (
-                        "You are an expert Minecraft agent planner. "
+                        "You are an expert Minecraft short-term agent planner. "
                         "You must output ONLY valid JSON. "
                         "Do not include markdown formatting or explanations."
                     )
@@ -195,7 +195,7 @@ class HuggingFacePlanner(BasePlanner):
 
                     if self.verbose:
                         print(f"\n[Model Response]")
-                        print(f"{cleaned_json_str[:500]}..." if len(cleaned_json_str) > 500 else cleaned_json_str)
+                        # print(f"{cleaned_json_str[:500]}..." if len(cleaned_json_str) > 500 else cleaned_json_str)
                     
                     try:
                         plan_json = json.loads(cleaned_json_str)

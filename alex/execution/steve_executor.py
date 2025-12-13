@@ -168,6 +168,10 @@ class SteveExecutor:
             }
             
         except Exception as e:
+
+            import traceback
+            traceback.print_exc()
+
             return {
                 "status": "FAILED",
                 "low_level_actions": actions,

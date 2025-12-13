@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import cv2 
 from pathlib import Path
 from datetime import datetime
 from functools import partial
@@ -153,9 +154,10 @@ class AlexAgentCallback(MinecraftCallback):
         
         if 'condition' not in obs:
             obs['condition'] = {}
+
         obs['condition'] = {
             "cond_scale": self.cond_scale,
-            "text": self.current_command
+            "text": "chop a tree"
         }
         
         return obs, info
@@ -188,7 +190,7 @@ class AlexAgentCallback(MinecraftCallback):
                 print(f"[STATE] Nearby blocks: {len(state.blocks) if state.blocks else 0}")
                 
                 print(f"\n[AGENT] Running planner...")
-                action = self.agent.step(info, state)
+                action = self.agent.step(obs, state)
                 
                 if hasattr(action, 'info') and action.info:
                     model_response = {}
@@ -201,7 +203,7 @@ class AlexAgentCallback(MinecraftCallback):
                     if model_response:
                         response_type = 'reflex' if 'reflex_response' in action.info else 'planner'
                         self._save_model_response(model_response, self.timestep, "replan", response_type)
-                
+
                 print(f"[AGENT] Action status: {action.status}")
                 if hasattr(action, 'info') and action.info:
                     print(f"[AGENT] Action info: {action.info}")
@@ -237,22 +239,21 @@ class AlexAgentCallback(MinecraftCallback):
                 print(f"\n[ERROR t={self.timestep}] Failed to update agent: {e}")
                 import traceback
                 traceback.print_exc()
+
         
-        if 'condition' not in obs:
-            obs['condition'] = {}
         obs['condition'] = {
             "cond_scale": self.cond_scale,
-            "text": self.current_command
+            "text": "chop a tree"
         }
         
         return obs, reward, terminated, truncated, info
-
+    
 
 def run_agent_with_recording(
     num_episodes: int = 3,
     max_steps: int = 1000,
     update_interval: int = 50,
-    cond_scale: float = 5.0,
+    cond_scale: float = 1.0,
     output_dir: str = None,
     description: str = "agent_loop",
     verbose: bool = True,
@@ -305,7 +306,7 @@ def run_agent_with_recording(
         
         print("Loading STEVE-1 model from CraftJarvis/MineStudio_STEVE-1.official...")
         agent_generator = lambda: SteveOnePolicy.from_pretrained("CraftJarvis/MineStudio_STEVE-1.official")
-        
+
         worker_kwargs = dict(
             env_generator=env_generator,
             agent_generator=agent_generator,
@@ -363,94 +364,13 @@ def run_agent_with_recording(
         print("Ray shutdown complete")
 
 
-def run_simple_loop_no_pipeline(
-    max_steps: int = 500,
-    update_interval: int = 50,
-    cond_scale: float = 5.0,
-    output_dir: str = None,
-    description: str = "simple_loop",
-    verbose: bool = True,
-):
-
-    if output_dir is None:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_desc = "".join(c if c.isalnum() else "_" for c in description[:30])
-        output_dir = f"./recordings/{safe_desc}_{timestamp}"
-    
-    os.makedirs(output_dir, exist_ok=True)
-    
-    print("=" * 80)
-    print("SIMPLE ALEX AGENT LOOP")
-    print("=" * 80)
-    print(f"Description: {description}")
-    print(f"Steps:       {max_steps}")
-    print(f"Output:      {output_dir}")
-    print("=" * 80)
-    print()
-    
-    print("Creating environment...")
-    env = MinecraftSim(
-        obs_size=(128, 128),
-        preferred_spawn_biome="forest",
-        callbacks=[
-            SpeedTestCallback(50),
-            AlexAgentCallback(
-                update_interval=update_interval,
-                cond_scale=cond_scale,
-                verbose=verbose,
-                output_dir=output_dir
-            ),
-            RecordCallback(
-                record_path=output_dir,
-                fps=20,
-                frame_type="pov",
-            ),
-        ]
-    )
-    
-    print("Loading STEVE-1 model...")
-    policy = SteveOnePolicy.from_pretrained("CraftJarvis/MineStudio_STEVE-1.official")
-    
-    print("\n" + "=" * 80)
-    print("RUNNING EPISODE...")
-    print("=" * 80)
-    print()
-    
-    obs, info = env.reset()
-    terminated = False
-    truncated = False
-    step = 0
-    
-    try:
-        while not (terminated or truncated) and step < max_steps:
-            action = policy.get_action(obs)
-            
-            obs, reward, terminated, truncated, info = env.step(action)
-            step += 1
-            
-            if step % 100 == 0:
-                print(f"Step {step}/{max_steps}")
-                
-    except KeyboardInterrupt:
-        print("\n[INTERRUPTED] Stopping episode...")
-    
-    finally:
-        env.close()
-        
-    print("\n" + "=" * 80)
-    print("EPISODE COMPLETE!")
-    print("=" * 80)
-    print(f"Total steps: {step}")
-    print(f"Recording saved to: {output_dir}")
-    print("=" * 80)
-
 
 if __name__ == "__main__":
     run_agent_with_recording(
         description="wood_and_crafting_table",
         num_episodes=1,
         max_steps=1000,
-        update_interval=100,
-        cond_scale=5.0,
+        update_interval=1000,
+        cond_scale=10.0,
         verbose=True,
     )

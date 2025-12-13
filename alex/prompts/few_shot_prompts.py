@@ -138,10 +138,6 @@ FEW_SHOT_EXAMPLES = [{
     "plan": {
         "reasoning": "Daytime on grass/dirt with stone nearby. I have diamonds but no wood or crafting table. I must get wood first to unlock crafting, then create a pickaxe to mine stone and upgrading my gear.",
         "subgoals": [
-<<<<<<< HEAD
-            {"name": "collect wood", "params": {"count": 8}, "priority": 12},
-            {"name": "craft planks", "params": {"count": 32}, "priority": 11},
-=======
             {"name": "mine log", "params": {}, "priority": 12},
             {"name": "craft planks", "params": {}, "priority": 11},
             {"name": "craft crafting_table", "params": {}, "priority": 10},
@@ -149,7 +145,6 @@ FEW_SHOT_EXAMPLES = [{
             {"name": "craft diamond_pickaxe", "params": {}, "priority": 8},
             {"name": "mine stone", "params": {}, "priority": 7},
             {"name": "craft furnace", "params": {}, "priority": 5}
->>>>>>> origin/mineclip-vision-67
         ],
         "immediate_action": "mine log",
         "context_notes": [
@@ -158,8 +153,6 @@ FEW_SHOT_EXAMPLES = [{
             "Diamonds are useless without a crafting table"
         ]
     }
-<<<<<<< HEAD
-=======
 },
 {
     "state": {
@@ -267,5 +260,4 @@ FEW_SHOT_EXAMPLES = [{
             "Need 1 more wool for a bed"
         ]
     }
->>>>>>> origin/mineclip-vision-67
 }]

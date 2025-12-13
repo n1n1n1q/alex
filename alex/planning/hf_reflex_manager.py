@@ -75,12 +75,12 @@ class HuggingFaceReflexManager:
             "Respond ONLY with JSON. Keep decisions localized and conservative."
         )
         self.allowed_actions = {
-            "emergency_retreat": {"priority": 100, "description": "Sprint away from imminent lethal risk."},
-            "block_in": {"priority": 90, "description": "Place blocks to create cover / hole for safety."},
-            "eat_food": {"priority": 70, "description": "Consume or seek food if hunger critically low."},
-            "fight_mob": {"priority": 80, "description": "Engage threatening hostile mob in close range."},
-            "scan_area": {"priority": 40, "description": "Pause briefly and scan surroundings."},
-            "none": {"priority": 0, "description": "No immediate reflex needed."},
+            "emergency retreat": {"priority": 100, "description": "Sprinting away from immediate danger."},
+            "block in": {"priority": 90, "description": "Quickly placing a protective block (e.g., 'place dirt') to gain cover."},
+            "eat food": {"priority": 70, "description": "Consume item from inventory to restore hunger/health."},
+            "kill hostile": {"priority": 80, "description": "Immediately attack the nearest hostile mob ('kill zombie')."},
+            "look around": {"priority": 40, "description": "Pause movement to quickly scan surroundings for threats/resources."},
+            "none": {"priority": 0, "description": "No immediate reflex is needed."}
         }
 
     def detect(self, state: GameState) -> Optional[Subgoal]:

@@ -3,6 +3,13 @@ from typing import Any, Dict, List
 from mcp.server.fastmcp import FastMCP
 from few_shot_prompts import FEW_SHOT_EXAMPLES
 
+try:
+    from alex.rag.retriever import WikiRetriever
+    # Initialize once globally to avoid reloading/indexing on every request
+    retriever = WikiRetriever() 
+except Exception as e:
+    print(f"RAG Init Failed: {e}")
+    retriever = None
 
 mcp = FastMCP("minecraft-planner")
 
@@ -27,12 +34,12 @@ Output Format:
 1. Actions must be **2-3 words** maximum.
 2. Structure: **VERB + OBJECT** (e.g., "mine log", "kill cow", "craft table").
 3. Use Minecraft IDs for objects (log, dirt, stone, iron_ore).
-4. Do NOT use abstract skills like "collect_wood" or "hunt_food".
+4. Do NOT use abstract skills like "collect wood" or "hunt food".
 
 Examples of valid actions:
-- "mine log" (NOT collect_wood)
+- "mine log" (NOT collect wood)
 - "mine stone"
-- "kill cow" (NOT hunt_food)
+- "kill cow" (NOT hunt food)
 - "kill zombie"
 - "craft planks"
 - "craft sticks"
@@ -66,6 +73,36 @@ def plan_actions(game_state: dict) -> str:
         a for category in guidelines["subgoals"].values() for a in category
     ]
     prompt = SYSTEM_PROMPT + "\n\n"
+
+    if retriever:
+        search_queries = []
+
+        if "mobs" in game_state:
+            unique_mobs = set()
+            for mob in game_state["mobs"]: # Check nearest mob
+                if mob["name"] not in unique_mobs:
+                    unique_mobs.add(mob["name"])
+                    search_queries.append(f"{mob['name']} information and drops")
+
+        if "inventory" in game_state:
+            unique_items = set()
+            for item in game_state["inventory"][:3]: # Check top 3 items
+                if item["name"] not in unique_items:
+                    unique_items.add(item["name"])
+                    search_queries.append(f"{item['name']} usage")
+
+    # Execute Search
+        wiki_context = []
+        for q in search_queries:
+            results = retriever.retrieve(q, k=1)
+            wiki_context.extend(results)
+            
+        # Inject into Prompt
+        if wiki_context:
+            prompt += "=== WIKI KNOWLEDGE (Context) ===\n"
+            for info in wiki_context:
+                prompt += f"- {info}\n"
+            prompt += "\n"
 
     if MEMORY_BUFFER:
         prompt += "=== PREVIOUS HISTORY (Short-term Memory) ===\n"
@@ -109,9 +146,9 @@ def get_planning_guidelines() -> dict:
                 "mine log",
                 "mine dirt",
                 "mine stone",
-                "mine iron_ore",
-                "mine coal_ore",
-                "mine diamond_ore"
+                "mine iron ore",
+                "mine coal ore",
+                "mine diamond ore"
             ],
             "combat": [
                 "kill cow",
@@ -125,8 +162,8 @@ def get_planning_guidelines() -> dict:
             "crafting": [
                 "craft planks",
                 "craft sticks",
-                "craft crafting_table",
-                "craft stone_pickaxe",
+                "craft crafting table",
+                "craft stone pickaxe",
                 "craft furnace",
                 "craft torch"
             ],

@@ -211,3 +211,5 @@ __marimo__/
 models/*.pth
 !models/readme.md
 Miniconda3-latest-MacOSX-arm64.sh
+conf/config.yaml
+conf/config.yaml

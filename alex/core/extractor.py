@@ -93,6 +93,20 @@ def extract_pov(raw_obs: Dict, raw_info: Dict, resized: bool = True) -> np.ndarr
         image = raw_obs.get("image")
     else:
         image = raw_info.get("pov")
+
+    if image is None:
+        return None
+
+    image = np.array(image)
+
+    if np.issubdtype(image.dtype, np.floating):
+        if image.max() <= 1.0:
+            image = (image * 255).astype(np.uint8)
+        else:
+            image = image.astype(np.uint8)
+    elif image.dtype != np.uint8:
+        image = image.astype(np.uint8)
+
     return image
 
 def pov_to_image(pov: np.ndarray) -> Any:

@@ -136,17 +136,136 @@ FEW_SHOT_EXAMPLES = [{
         }
     },
     "plan": {
-        "reasoning": "Daytime on grass/dirt with stone exposed nearby; cows are passive. Full health/hunger, many diamonds but no wood/tools/armor equipped. First secure wood to unlock crafting, then convert diamonds into tools/armor and establish light/shelter.",
+        "reasoning": "Daytime on grass/dirt with stone nearby. I have diamonds but no wood or crafting table. I must get wood first to unlock crafting, then create a pickaxe to mine stone and upgrading my gear.",
         "subgoals": [
+<<<<<<< HEAD
             {"name": "collect wood", "params": {"count": 8}, "priority": 12},
             {"name": "craft planks", "params": {"count": 32}, "priority": 11},
+=======
+            {"name": "mine log", "params": {}, "priority": 12},
+            {"name": "craft planks", "params": {}, "priority": 11},
+            {"name": "craft crafting_table", "params": {}, "priority": 10},
+            {"name": "craft sticks", "params": {}, "priority": 9},
+            {"name": "craft diamond_pickaxe", "params": {}, "priority": 8},
+            {"name": "mine stone", "params": {}, "priority": 7},
+            {"name": "craft furnace", "params": {}, "priority": 5}
+>>>>>>> origin/mineclip-vision-67
         ],
-        "immediate_action": "collect_wood",
+        "immediate_action": "mine log",
         "context_notes": [
-            "High light (15) and sun_brightness 0.94 — safe window",
-            "Nearby stone means quick furnace setup",
-            "Cows present — plan for pen/breeding later",
-            "No armor equipped yet — avoid fights until geared"
+            "Need to punch trees (mine log) to start progression",
+            "Cows nearby but food is not urgent yet",
+            "Diamonds are useless without a crafting table"
         ]
     }
+<<<<<<< HEAD
+=======
+},
+{
+    "state": {
+        "env_state": {
+            "biome_id": 1,
+            "biome_rainfall": 0.4,
+            "biome_temperature": 0.7,
+            "can_see_sky": "true",
+            "is_raining": "false",
+            "light_level": 6,
+            "sea_level": 63,
+            "sky_light_level": 0.25,
+            "sun_brightness": 0.18
+        },
+        "player_pos": {"x": 312.4, "y": 68.0, "z": -145.2, "pitch": 8.0, "yaw": 92.0},
+        "blocks": [
+            {"x": -1, "y": -1, "z": 0, "type": "minecraft:grass_block"},
+            {"x": 0, "y": -1, "z": 0, "type": "minecraft:grass_block"},
+            {"x": 1, "y": -1, "z": 0, "type": "minecraft:grass_block"},
+            {"x": 0, "y": -2, "z": 1, "type": "minecraft:dirt"},
+            {"x": -1, "y": -2, "z": 1, "type": "minecraft:dirt"},
+            {"x": 0, "y": -2, "z": -1, "type": "minecraft:cobblestone"}
+        ],
+        "mobs": [{"x": 6.0, "y": 68.0, "z": 3.0, "name": "Zombie"}],
+        "health": 14.0,
+        "hunger": 15,
+        "is_gui_open": "false",
+        "inventory": {
+            "0": {"type": "stone_sword", "quantity": 1},
+            "1": {"type": "oak_planks", "quantity": 24},
+            "2": {"type": "torch", "quantity": 8},
+            "3": {"type": "bread", "quantity": 2},
+            "4": {"type": "white_wool", "quantity": 2},
+            "5": {"type": "stick", "quantity": 4},
+            "6": {"type": "none", "quantity": 0},
+            "7": {"type": "none", "quantity": 0},
+            "8": {"type": "none", "quantity": 0},
+            "9": {"type": "none", "quantity": 0},
+            "10": {"type": "none", "quantity": 0},
+            "11": {"type": "none", "quantity": 0},
+            "12": {"type": "none", "quantity": 0},
+            "13": {"type": "none", "quantity": 0},
+            "14": {"type": "none", "quantity": 0},
+            "15": {"type": "none", "quantity": 0},
+            "16": {"type": "none", "quantity": 0},
+            "17": {"type": "none", "quantity": 0},
+            "18": {"type": "none", "quantity": 0},
+            "19": {"type": "none", "quantity": 0},
+            "20": {"type": "none", "quantity": 0},
+            "21": {"type": "none", "quantity": 0},
+            "22": {"type": "none", "quantity": 0},
+            "23": {"type": "none", "quantity": 0},
+            "24": {"type": "none", "quantity": 0},
+            "25": {"type": "none", "quantity": 0},
+            "26": {"type": "none", "quantity": 0},
+            "27": {"type": "none", "quantity": 0},
+            "28": {"type": "none", "quantity": 0},
+            "29": {"type": "none", "quantity": 0},
+            "30": {"type": "none", "quantity": 0},
+            "31": {"type": "none", "quantity": 0},
+            "32": {"type": "none", "quantity": 0},
+            "33": {"type": "none", "quantity": 0},
+            "34": {"type": "none", "quantity": 0},
+            "35": {"type": "none", "quantity": 0}
+        },
+        "inventory_agg": {
+            "stone_sword": 1,
+            "oak_planks": 24,
+            "torch": 8,
+            "bread": 2,
+            "white_wool": 2,
+            "stick": 4
+        },
+        "equipped_items": {
+            "chest": {"damage": 0, "maxDamage": 0, "type": "air"},
+            "feet": {"damage": 0, "maxDamage": 0, "type": "air"},
+            "head": {"damage": 0, "maxDamage": 0, "type": "air"},
+            "legs": {"damage": 0, "maxDamage": 0, "type": "air"},
+            "mainhand": {"damage": 0, "maxDamage": 0, "type": "air"},
+            "offhand": {"damage": 0, "maxDamage": 0, "type": "air"}
+        },
+        "extras": {
+            "use_item": {},
+            "pickup": {},
+            "break_item": {},
+            "craft_item": {},
+            "mine_block": {},
+            "damage_dealt": {},
+            "custom": {"time_since_rest": 1200, "play_one_minute": 1200},
+            "kill_entity": {}
+        }
+    },
+    "plan": {
+        "reasoning": "Dusk with a zombie nearby. I have torches and planks. I should light up the area to prevent spawns and place planks to block the zombie or create shelter.",
+        "subgoals": [
+            {"name": "place torch", "params": {}, "priority": 12},
+            {"name": "place oak_planks", "params": {}, "priority": 11},
+            {"name": "eat bread", "params": {}, "priority": 10},
+            {"name": "craft bed", "params": {}, "priority": 8}
+        ],
+        "immediate_action": "place torch",
+        "context_notes": [
+            "Zombie is close (6 blocks), immediate threat",
+            "Low light means more mobs might spawn",
+            "Need 1 more wool for a bed"
+        ]
+    }
+>>>>>>> origin/mineclip-vision-67
 }]

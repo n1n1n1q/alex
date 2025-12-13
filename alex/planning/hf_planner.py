@@ -52,6 +52,7 @@ class HuggingFacePlanner(BasePlanner):
 
         self.server_params = None
         self._executor = None
+        self._last_successful_plan = []
 
     def _ensure_resources(self):
         if self.pipe is None:
@@ -166,7 +167,6 @@ class HuggingFacePlanner(BasePlanner):
                     if self.verbose:
                         print(f"[MCP] Session created, initializing...")
                     await session.initialize()
-                    
 
                     result = await session.call_tool(
                         "plan_actions",
@@ -228,6 +228,8 @@ class HuggingFacePlanner(BasePlanner):
                             print(f"  {i}. {sg.name} (priority={sg.priority}, params={sg.params})")
                         print(f"{'='*70}\n")
                     
+                    self._last_successful_plan = subgoals
+                    
                     return subgoals
                     
         except Exception as e:
@@ -247,7 +249,7 @@ class HuggingFacePlanner(BasePlanner):
                             # Check for common MCP issues
                             err_str = str(sub_exc).lower()
                             if 'modulenotfounderror' in str(type(sub_exc)).lower() or 'no module' in err_str:
-                                print(f"\n{indent}⚠️  Module import error detected.")
+                                print(f"\n{indent}Module import error detected.")
                                 print(f"{indent}   Error: {sub_exc}")
                                 if 'mcp' in err_str:
                                     print(f"{indent}   Install: pip install mcp>=0.9.0 fastmcp>=0.2.0")
@@ -256,12 +258,16 @@ class HuggingFacePlanner(BasePlanner):
                             print_exception_group(sub_exc, level + 1)
                 
                 print_exception_group(e)
-                
-                print(f"[Fallback] Using simple rule-based planning")
                 print(f"{'='*70}\n")
             else:
                 print(f"HF planning failed: {e}")
             
+            if self._last_successful_plan:
+                if self.verbose:
+                    print(f"[Fallback] Strategy: Repeating last successful plan")
+                return self._last_successful_plan
+            
+            # Only use default fallback if no history exists
             return self.fallback_plan(state)
     
     def plan(self, state: GameState) -> List[Subgoal]:

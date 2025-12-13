@@ -2,19 +2,26 @@ import os
 import lightning as L
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.callbacks import LearningRateMonitor
+
 # below are MineStudio dependencies
 from minestudio.data import EventDataModule
-from minestudio.data.minecraft.callbacks import ImageKernelCallback, ActionKernelCallback
+from minestudio.data.minecraft.callbacks import (
+    ImageKernelCallback,
+    ActionKernelCallback,
+)
 from minestudio.offline import MineLightning
 from minestudio.models import load_vpt_policy, VPTPolicy
 from minestudio.offline.mine_callbacks import BehaviorCloneCallback
-from minestudio.offline.lightning_callbacks import SmartCheckpointCallback, SpeedMonitorCallback
+from minestudio.offline.lightning_callbacks import (
+    SmartCheckpointCallback,
+    SpeedMonitorCallback,
+)
 from pathlib import Path
 from minestudio.data.minecraft.utils import pull_datasets_from_remote
 
 import argparse
 
-os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 policy = VPTPolicy.from_pretrained("CraftJarvis/MineStudio_VPT.foundation_model_3x")
 mine_lightning = MineLightning(
@@ -22,8 +29,10 @@ mine_lightning = MineLightning(
     learning_rate=0.00004,
     warmup_steps=2000,
     weight_decay=0.000181,
-    callbacks=[BehaviorCloneCallback(weight=0.01)]
+    callbacks=[BehaviorCloneCallback(weight=0.01)],
 )
+
+
 def _resolve_dataset_dirs():
     """
     Return a list of valid dataset dirs.
@@ -37,6 +46,7 @@ def _resolve_dataset_dirs():
     except Exception:
         pass
     return pull_datasets_from_remote(["10xx"])
+
 
 DATASET_DIRS = _resolve_dataset_dirs()
 
@@ -63,25 +73,33 @@ mine_data = EventDataModule(
 )
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--path_ckpt', type=str, default=None, help='Path to checkpoint to resume from')
+parser.add_argument(
+    "--path_ckpt", type=str, default=None, help="Path to checkpoint to resume from"
+)
 
 ckpt_path = parser.parse_args().path_ckpt
 L.Trainer(
-    logger=WandbLogger(project="minestudio-vpt"), 
-    devices=1, 
+    logger=WandbLogger(project="minestudio-vpt"),
+    devices=1,
     precision="bf16-mixed",
     gradient_clip_val=1.0,
-    accumulate_grad_batches=8, 
+    accumulate_grad_batches=8,
     callbacks=[
-        LearningRateMonitor(logging_interval='step'), 
+        LearningRateMonitor(logging_interval="step"),
         SpeedMonitorCallback(),
         SmartCheckpointCallback(
-            dirpath='./weights', filename='weight-{epoch}-{step}', save_top_k=-1, 
-            every_n_train_steps=2000, save_weights_only=True,
-        ), 
+            dirpath="./weights",
+            filename="weight-{epoch}-{step}",
+            save_top_k=-1,
+            every_n_train_steps=2000,
+            save_weights_only=True,
+        ),
         SmartCheckpointCallback(
-            dirpath='./checkpoints', filename='ckpt-{epoch}-{step}', save_top_k=1, 
-            every_n_train_steps=2000+1, save_weights_only=False,
-        )
-    ]
+            dirpath="./checkpoints",
+            filename="ckpt-{epoch}-{step}",
+            save_top_k=1,
+            every_n_train_steps=2000 + 1,
+            save_weights_only=False,
+        ),
+    ],
 ).fit(model=mine_lightning, datamodule=mine_data, ckpt_path=ckpt_path, max_epochs=20)

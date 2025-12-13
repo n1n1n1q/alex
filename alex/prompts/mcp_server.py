@@ -26,7 +26,7 @@ if project_root not in sys.path:
 import json
 from typing import Any, Dict, List
 from mcp.server.fastmcp import FastMCP
-from few_shot_prompts import FEW_SHOT_EXAMPLES
+from .few_shot_prompts import FEW_SHOT_EXAMPLES
 
 try:
     from alex.rag.retriever import WikiRetriever
@@ -41,7 +41,8 @@ mcp = FastMCP("minecraft-planner")
 MEMORY_BUFFER = []
 MAX_MEMORY_LENGTH = 3
 
-SYSTEM_PROMPT = """You are an expert Minecraft strategist and planner. Your job is to analyze the current game state and create a structured action plan.
+SYSTEM_PROMPT = """
+You are an Minecraft short time task planner. Your job is to analyze the current game state and create a structured action plan.
 
 **CRITICAL: You must respond with ONLY valid JSON.**
 
@@ -59,7 +60,8 @@ Output Format:
 1. Actions must be **2-3 words** maximum.
 2. Structure: **VERB + OBJECT** (e.g., "mine log", "kill cow", "craft table").
 3. Use Minecraft IDs for objects (log, dirt, stone, iron_ore).
-4. Do NOT use abstract skills like "collect wood" or "hunt food".
+4. Do NOT use abstract skills like "collect_wood" or "hunt_food".
+5. Do NOT suggest skill that can't be done imediately 
 
 Examples of valid actions:
 - "mine log" (NOT collect wood)
@@ -71,6 +73,17 @@ Examples of valid actions:
 - "place dirt"
 - "look around"
 
+**PROGRESSION RULES**
+Follow precisely this plan: 
+
+"1. Collect wood (logs)",
+"2. Craft planks from logs",
+"3. Craft crafting table",
+"4. Craft wooden pickaxe",
+
+Do not make tasks from next levels if previous wasn't done
+
+
 For dynamic targets (e.g. hunting), construct the string yourself: "kill {mob_name}".
 """
 
@@ -78,14 +91,10 @@ For dynamic targets (e.g. hunting), construct the string yourself: "kill {mob_na
 ACTION_PLAN_SCHEMA = {
     "reasoning": "Brief explanation of the plan (2-3 sentences)",
     "subgoals": [
-        {
-            "name": "action_name",
-            "params": {"key": "value"},
-            "priority": "0-100 integer"
-        }
+        {"name": "action_name", "params": {"key": "value"}, "priority": "0-100 integer"}
     ],
     "immediate_action": "what to do right now",
-    "context_notes": ["observation1", "observation2"]
+    "context_notes": ["observation1", "observation2"],
 }
 
 
@@ -141,7 +150,6 @@ def plan_actions(game_state: dict) -> str:
             prompt += f"Turn -{turn_num}:\n"
             prompt += f"  Reasoning: {memory['reasoning']}\n"
             prompt += f"  Action Taken: {memory['immediate_action']}\n"
-            # We explicitly list subgoals to remind the agent of its medium-term plan
             prompt += f"  Subgoals Set: {json.dumps(memory['subgoals'])}\n"
             prompt += "---\n"
         prompt += "\n"
@@ -150,19 +158,20 @@ def plan_actions(game_state: dict) -> str:
 
     prompt += json.dumps(allowed_actions, indent=2) + "\n\n"
     prompt += "Do NOT create or invent actions outside this list.\n\n"
+    prompt += "If current goal is not completed do not start a new one. \n\n"
 
     prompt += "=== EXAMPLES ===\n\n"
-    
+
     for i, example in enumerate(FEW_SHOT_EXAMPLES, 1):
         prompt += f"Example {i}:\n"
         prompt += f"INPUT STATE:\n{json.dumps(example['state'], indent=2)}\n\n"
         prompt += f"OUTPUT PLAN:\n{json.dumps(example['plan'], indent=2)}\n\n"
         prompt += "---\n\n"
-    
+
     prompt += "=== YOUR TASK ===\n\n"
     prompt += f"Current Game State:\n{json.dumps(game_state, indent=2)}\n\n"
-    prompt += "Generate an action plan following the format above. Respond with ONLY the JSON object, no markdown, no code blocks.\n"
-    
+    prompt += "Generate an action plan following the format above. Generate only ONE subgoal. Respond with ONLY the JSON object, no markdown, no code blocks.\n"
+
     return prompt
 
 
@@ -172,7 +181,7 @@ def get_planning_guidelines() -> dict:
     return {
         "subgoals": {
             "gathering": [
-                "mine log",
+                "gather wood",
                 "mine dirt",
                 "mine stone",
                 "mine iron ore",
@@ -186,7 +195,7 @@ def get_planning_guidelines() -> dict:
                 "kill chicken",
                 "kill zombie",
                 "kill skeleton",
-                "kill creeper"
+                "kill creeper",
             ],
             "crafting": [
                 "craft planks",
@@ -194,14 +203,9 @@ def get_planning_guidelines() -> dict:
                 "craft crafting table",
                 "craft stone pickaxe",
                 "craft furnace",
-                "craft torch"
+                "craft torch",
             ],
-            "survival": [
-                "place dirt",
-                "place cobblestone",
-                "eat food",
-                "look around"
-            ]
+            "survival": ["place dirt", "place cobblestone", "eat food", "look around"],
         },
         "progression_order": [
             "1. Collect wood (logs)",
@@ -213,15 +217,15 @@ def get_planning_guidelines() -> dict:
             "7. Build shelter before night",
             "8. Mine iron ore",
             "9. Craft furnace and smelt iron",
-            "10. Craft iron tools"
+            "10. Craft iron tools",
         ],
         "survival_tips": [
             "Always monitor health and hunger",
             "Seek shelter before night (time_of_day=dusk)",
             "Avoid combat with low health",
             "Prioritize food when hunger is low",
-            "Craft and place torches for night-time safety"
-        ]
+            "Craft and place torches for night-time safety",
+        ],
     }
 
 
@@ -230,17 +234,17 @@ def validate_action_plan(plan_json: str) -> dict:
 
     try:
         plan = json.loads(plan_json)
-        
+
         errors = []
         warnings = []
-        
+
         if "reasoning" not in plan:
             errors.append("Missing 'reasoning' field")
         if "subgoals" not in plan:
             errors.append("Missing 'subgoals' field")
         if "immediate_action" not in plan:
             errors.append("Missing 'immediate_action' field")
-            
+
         if "subgoals" in plan:
             if not isinstance(plan["subgoals"], list):
                 errors.append("'subgoals' must be a list")
@@ -251,21 +255,23 @@ def validate_action_plan(plan_json: str) -> dict:
                     if "priority" not in sg:
                         warnings.append(f"Subgoal {i} missing 'priority'")
                     elif not (0 <= sg["priority"] <= 100):
-                        warnings.append(f"Subgoal {i} priority {sg['priority']} outside 0-100 range")
-        
+                        warnings.append(
+                            f"Subgoal {i} priority {sg['priority']} outside 0-100 range"
+                        )
+
         return {
             "valid": len(errors) == 0,
             "errors": errors,
             "warnings": warnings,
-            "plan": plan if len(errors) == 0 else None
+            "plan": plan if len(errors) == 0 else None,
         }
-        
+
     except json.JSONDecodeError as e:
         return {
             "valid": False,
             "errors": [f"Invalid JSON: {str(e)}"],
             "warnings": [],
-            "plan": None
+            "plan": None,
         }
 
 

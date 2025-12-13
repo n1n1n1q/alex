@@ -31,6 +31,7 @@ import numpy as np
 try:
     from minestudio.simulator.callbacks import MinecraftCallback
     from minestudio.models import SteveOnePolicy
+
     STEVE_AVAILABLE = True
 except ImportError:
     STEVE_AVAILABLE = False
@@ -42,7 +43,7 @@ class CommandCallback(MinecraftCallback):
     """
     Injects text command into observations for STEVE-1 conditioning.
     """
-    
+
     def __init__(self, command: str, cond_scale: float = 4.0):
         """
         Args:
@@ -57,23 +58,17 @@ class CommandCallback(MinecraftCallback):
     def after_reset(self, sim, obs, info):
         """Add condition to observation after environment reset."""
         self.timestep = 0
-        if 'condition' not in obs:
-            obs['condition'] = {}
-        obs['condition'] = {
-            "cond_scale": self.cond_scale,
-            "text": self.command
-        }
+        if "condition" not in obs:
+            obs["condition"] = {}
+        obs["condition"] = {"cond_scale": self.cond_scale, "text": self.command}
         return obs, info
-    
+
     def after_step(self, sim, obs, reward, terminated, truncated, info):
         """Add condition to observation after each step."""
         self.timestep += 1
-        if 'condition' not in obs:
-            obs['condition'] = {}
-        obs['condition'] = {
-            "cond_scale": self.cond_scale,
-            "text": self.command
-        }
+        if "condition" not in obs:
+            obs["condition"] = {}
+        obs["condition"] = {"cond_scale": self.cond_scale, "text": self.command}
         return obs, reward, terminated, truncated, info
 
 
@@ -81,7 +76,7 @@ class SteveExecutor:
     """
     Executes STEVE-1 policy to generate low-level actions from text commands.
     """
-    
+
     def __init__(
         self,
         model_path: str = "CraftJarvis/MineStudio_STEVE-1.official",
@@ -90,7 +85,7 @@ class SteveExecutor:
     ):
         """
         Initialize STEVE-1 executor.
-        
+
         Args:
             model_path: HuggingFace path to STEVE-1 model
             default_cond_scale: Default conditioning strength (2.0-8.0)
@@ -101,17 +96,17 @@ class SteveExecutor:
                 "MineStudio not available. Install with: "
                 "pip install git+https://github.com/annastasyshyn/MineStudio.git"
             )
-        
+
         self.model_path = model_path
         self.default_cond_scale = default_cond_scale
         self.default_max_steps = default_max_steps
         self.policy = None  # SteveOnePolicy instance (loaded lazily)
-        
+
     def load_policy(self) -> None:
         """Lazy load STEVE-1 policy (heavy operation, call once)."""
         if self.policy is None:
             self.policy = SteveOnePolicy.from_pretrained(self.model_path)
-    
+
     def execute(
         self,
         text_command: str,
@@ -121,13 +116,13 @@ class SteveExecutor:
     ) -> Dict[str, Any]:
         """
         Execute STEVE-1 policy for given text command.
-        
+
         Args:
             text_command: Short goal-oriented prompt (e.g., "mine log", "kill cow")
             env_obs: Current environment observation from MinecraftSim
             max_steps: Maximum steps to execute (defaults to default_max_steps)
             cond_scale: Conditioning strength (defaults to default_cond_scale)
-            
+
         Returns:
             Dict with:
                 - status: "OK" | "FAILED"
@@ -135,27 +130,23 @@ class SteveExecutor:
                 - info: Execution metadata
         """
         self.load_policy()
-        
+
         max_steps = max_steps or self.default_max_steps
         cond_scale = cond_scale or self.default_cond_scale
-        
-        # Add condition to observation
+
         obs = env_obs.copy()
-        if 'condition' not in obs:
-            obs['condition'] = {}
-        obs['condition'] = {
-            "cond_scale": cond_scale,
-            "text": text_command
-        }
-        
+        if "condition" not in obs:
+            obs["condition"] = {}
+        obs["condition"] = {"cond_scale": cond_scale, "text": text_command}
+
         actions = []
         state_in = None
-        
+
         try:
             for step in range(max_steps):
                 action, state_in = self.policy.get_action(obs, state_in)
                 actions.append(action)
-                
+
             return {
                 "status": "OK",
                 "low_level_actions": actions,
@@ -164,10 +155,15 @@ class SteveExecutor:
                     "cond_scale": cond_scale,
                     "steps_executed": len(actions),
                     "max_steps": max_steps,
-                }
+                },
             }
-            
+
         except Exception as e:
+
+            import traceback
+
+            traceback.print_exc()
+
             return {
                 "status": "FAILED",
                 "low_level_actions": actions,
@@ -175,9 +171,9 @@ class SteveExecutor:
                     "error": str(e),
                     "text_command": text_command,
                     "steps_executed": len(actions),
-                }
+                },
             }
-    
+
     def unload_policy(self) -> None:
         """Unload policy to free GPU memory."""
         self.policy = None

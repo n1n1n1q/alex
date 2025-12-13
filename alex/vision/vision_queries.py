@@ -62,45 +62,32 @@ SCENE_QUERIES = {
 }
 
 
-# Spatial queries for detecting WHERE objects are located in the scene
-# These are used with the SpatialAttentionMap for positional awareness
 SPATIAL_QUERIES = [
-    # Hostile entities
     "zombie",
     "skeleton",
     "creeper",
     "spider",
     "enderman",
-    
-    # Passive mobs
     "cow",
     "sheep",
     "pig",
     "chicken",
     "horse",
-    
-    # Environmental features
     "trees",
     "water",
     "lava",
     "stone blocks",
     "wooden planks",
     "grass",
-    
-    # Resources
     "iron ore",
     "coal ore",
     "diamond ore",
     "chest",
     "crafting table",
-    
-    # Structures
     "village houses",
     "cave entrance",
     "building",
     "fence",
-    
-    # Player-related
     "player hand",
     "weapon",
     "tool",

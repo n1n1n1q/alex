@@ -53,9 +53,13 @@ class AlexConfig:
         mineclip_path = cfg_dict.get("mineclip_weights_path")
         if not mineclip_path:
             default_path = os.path.abspath(
-                os.path.join(Path(__file__).resolve().parent.parent, "models", "avg.pth")
+                os.path.join(
+                    Path(__file__).resolve().parent.parent, "models", "avg.pth"
+                )
             )
-            cfg_dict["mineclip_weights_path"] = default_path if os.path.exists(default_path) else None
+            cfg_dict["mineclip_weights_path"] = (
+                default_path if os.path.exists(default_path) else None
+            )
 
         return cls(**cfg_dict)  # type: ignore[arg-type]
 
@@ -68,7 +72,9 @@ class AlexConfig:
             except ImportError:
                 issues.append("STEVE executor enabled but minestudio not installed")
 
-        if self.mineclip_weights_path and not os.path.exists(self.mineclip_weights_path):
+        if self.mineclip_weights_path and not os.path.exists(
+            self.mineclip_weights_path
+        ):
             issues.append(f"MineCLIP weights not found: {self.mineclip_weights_path}")
 
         return issues
@@ -76,8 +82,12 @@ class AlexConfig:
     def print_summary(self) -> None:
         print("=== Alex Configuration ===")
         print(f"  HF Planner: {'enabled' if self.use_hf_planner else 'disabled'}")
-        print(f"  HF Reflex Manager: {'enabled' if self.use_hf_reflex_manager else 'disabled'}")
-        print(f"  STEVE Executor: {'enabled' if self.use_steve_executor else 'disabled'}")
+        print(
+            f"  HF Reflex Manager: {'enabled' if self.use_hf_reflex_manager else 'disabled'}"
+        )
+        print(
+            f"  STEVE Executor: {'enabled' if self.use_steve_executor else 'disabled'}"
+        )
         print(f"  Device: {self.device or 'auto-detect'}")
         print(f"  Verbose: {self.verbose}")
 
@@ -105,7 +115,9 @@ def get_config(
     """
     global _config
     if _config is None:
-        _config = AlexConfig.from_config_file(config_dir=config_dir, config_name=config_name, overrides=overrides)
+        _config = AlexConfig.from_config_file(
+            config_dir=config_dir, config_name=config_name, overrides=overrides
+        )
     return _config
 
 

@@ -16,7 +16,7 @@ from .formatters import VisionFormatter
 
 __all__ = [
     "MineCLIPEncoder",
-    "SceneAnalyzer", 
+    "SceneAnalyzer",
     "SpatialAttentionMap",
     "VisionFormatter",
 ]

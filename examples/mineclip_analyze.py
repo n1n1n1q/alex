@@ -8,7 +8,7 @@ import os
 import json
 import argparse
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../submodules/MineCLIP'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../submodules/MineCLIP"))
 from mineclip import MineCLIP
 from mineclip.mineclip.tokenization import tokenize_batch
 
@@ -71,15 +71,15 @@ class MineCLIPAnalyzer:
             "exposed": "open exposed outside vulnerable",
         },
     }
-    
+
     def __init__(self, weights_path: str, device: str = "cpu"):
         self.device = device
-        
+
         if "avg" in os.path.basename(weights_path).lower():
             pool_type = "avg"
         else:
             pool_type = "attn.d2.nh8.glusw"
-        
+
         self.model = MineCLIP(
             arch="vit_base_p16_fz.v2.t2",
             resolution=(160, 256),
@@ -88,96 +88,105 @@ class MineCLIPAnalyzer:
             mlp_adapter_spec="v0-2.t0",
             hidden_dim=512,
         ).to(device)
-        
+
         if os.path.exists(weights_path):
             self.model.load_ckpt(weights_path, strict=True)
             print(f"✓ Loaded MineCLIP weights: {weights_path}", file=sys.stderr)
         else:
             print(f"⚠ Weights not found: {weights_path}", file=sys.stderr)
             sys.exit(1)
-        
+
         self.model.eval()
-        
-        self.transform = T.Compose([
-            T.Resize((160, 256)),
-        ])
-    
+
+        self.transform = T.Compose(
+            [
+                T.Resize((160, 256)),
+            ]
+        )
+
     def _encode_image(self, image: Image.Image) -> torch.Tensor:
         """Encode a PIL image to MineCLIP embedding.
-        
+
         MineCLIP expects input tensor with shape [B, L, C, H, W] where:
         - B = batch size
         - L = sequence length (number of frames, use 1 for single image)
         - C = channels (3 for RGB)
         - H, W = height, width (160, 256 for MineCLIP)
-        
+
         Pixel values should be in [0, 255] range as the model handles normalization.
         """
         image = self.transform(image)
-        
+
         image_tensor = torch.from_numpy(np.array(image)).permute(2, 0, 1).float()
-        
+
         image_tensor = image_tensor.unsqueeze(0).unsqueeze(0).to(self.device)
-        
+
         with torch.no_grad():
             embedding = self.model.encode_video(image_tensor)
         return embedding
-    
+
     def _encode_text(self, text: str) -> torch.Tensor:
         tokens = tokenize_batch([text], max_length=77, language_model="clip")
         tokens = tokens.to(self.device)
         with torch.no_grad():
             text_emb = self.model.encode_text(tokens)
         return text_emb
-    
+
     def compute_similarity(self, image: Image.Image, text: str) -> float:
         image_emb = self._encode_image(image)
         text_emb = self._encode_text(text)
-        
+
         image_emb = F.normalize(image_emb, dim=-1)
         text_emb = F.normalize(text_emb, dim=-1)
-        
+
         logit_scale = self.model.clip_model.logit_scale.exp()
         similarity = (logit_scale * (image_emb @ text_emb.T)).squeeze().item()
         return similarity
-    
-    def compute_similarities_batch(self, image: Image.Image, texts: list[str]) -> list[float]:
+
+    def compute_similarities_batch(
+        self, image: Image.Image, texts: list[str]
+    ) -> list[float]:
         """Compute similarities for multiple text queries efficiently."""
         image_emb = self._encode_image(image)
         image_emb = F.normalize(image_emb, dim=-1)
-        
+
         all_tokens = tokenize_batch(texts, max_length=77, language_model="clip")
         all_tokens = all_tokens.to(self.device)
         with torch.no_grad():
             text_embs = self.model.encode_text(all_tokens)
         text_embs = F.normalize(text_embs, dim=-1)
-        
+
         logit_scale = self.model.clip_model.logit_scale.exp()
         similarities = (logit_scale * (image_emb @ text_embs.T)).squeeze()
-        
+
         return similarities.cpu().tolist()
-    
+
     def _analyze_category(self, category: str, image: Image.Image) -> dict:
         queries = self.SCENE_QUERIES.get(category, {})
-        
+
         if not queries:
-            return {"scores": {}, "best_match": None, "confidence": 0.0, "probabilities": {}}
-        
+            return {
+                "scores": {},
+                "best_match": None,
+                "confidence": 0.0,
+                "probabilities": {},
+            }
+
         names = list(queries.keys())
         texts = list(queries.values())
-        
+
         raw_scores = self.compute_similarities_batch(image, texts)
-        
+
         scores = {name: round(score, 4) for name, score in zip(names, raw_scores)}
-        
+
         scores_tensor = torch.tensor(raw_scores)
         probs = F.softmax(scores_tensor, dim=0).tolist()
         probabilities = {name: round(prob, 4) for name, prob in zip(names, probs)}
-        
+
         best_match = max(scores, key=scores.get)
         best_score = scores[best_match]
         best_prob = probabilities[best_match]
-        
+
         return {
             "scores": scores,
             "probabilities": probabilities,
@@ -185,12 +194,12 @@ class MineCLIPAnalyzer:
             "confidence": best_score,
             "probability": best_prob,
         }
-    
+
     def analyze(self, image_path: str) -> dict:
-        image = Image.open(image_path).convert('RGB')
+        image = Image.open(image_path).convert("RGB")
         image_emb = self._encode_image(image)
         embedding = image_emb.squeeze().cpu().numpy()
-        
+
         biome_analysis = self._analyze_category("biome", image)
         time_analysis = self._analyze_category("time_of_day", image)
         weather_analysis = self._analyze_category("weather", image)
@@ -199,7 +208,7 @@ class MineCLIPAnalyzer:
         passive_analysis = self._analyze_category("passive_mobs", image)
         resources_analysis = self._analyze_category("resources", image)
         structures_analysis = self._analyze_category("structures", image)
-        
+
         analysis = {
             "image_path": image_path,
             "summary": {
@@ -207,7 +216,11 @@ class MineCLIPAnalyzer:
                 "time": time_analysis["best_match"],
                 "weather": weather_analysis["best_match"],
                 "safety": safety_analysis["best_match"],
-                "top_threat": hostile_analysis["best_match"] if hostile_analysis["confidence"] > 0.15 else None,
+                "top_threat": (
+                    hostile_analysis["best_match"]
+                    if hostile_analysis["confidence"] > 0.15
+                    else None
+                ),
                 "top_resource": resources_analysis["best_match"],
             },
             "environment": {
@@ -224,16 +237,18 @@ class MineCLIPAnalyzer:
             "structures": structures_analysis,
             "embedding_sample": embedding[:10].tolist(),
         }
-        
+
         return analysis
-    
+
     def generate_agent_context(self, image_path: str) -> str:
         analysis = self.analyze(image_path)
         summary = analysis["summary"]
-        threat_info = summary["top_threat"] if summary["top_threat"] else "none detected"
+        threat_info = (
+            summary["top_threat"] if summary["top_threat"] else "none detected"
+        )
         env = analysis["environment"]
         entities = analysis["entities"]
-        
+
         context = f"""
 === MINECRAFT VISUAL ANALYSIS ===
 
@@ -274,7 +289,7 @@ Structures:
 === END ANALYSIS ===
 """
         return context
-    
+
     def _format_scores(self, scores: dict, as_percent: bool = True) -> str:
         lines = []
         for name, score in sorted(scores.items(), key=lambda x: -x[1]):
@@ -285,32 +300,48 @@ Structures:
             else:
                 lines.append(f"  {name:15} [{bar}] {score:.2f}")
         return "\n".join(lines)
-    
+
     def get_embedding(self, image_path: str) -> np.ndarray:
-        image = Image.open(image_path).convert('RGB')
+        image = Image.open(image_path).convert("RGB")
         image_emb = self._encode_image(image)
         return image_emb.squeeze().cpu().numpy()
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Analyze Minecraft screenshots for agent decision-making")
+    parser = argparse.ArgumentParser(
+        description="Analyze Minecraft screenshots for agent decision-making"
+    )
     parser.add_argument("image", help="Path to Minecraft screenshot")
-    parser.add_argument("--weights", "--model", default=None, help="Path to MineCLIP weights (default: models/attn.pth)")
-    parser.add_argument("--device", default="mps", choices=["cpu", "mps", "cuda"], help="Device to run on")
-    parser.add_argument("--json", action="store_true", help="Output as JSON instead of text")
-    parser.add_argument("--embedding", action="store_true", help="Output just the embedding vector")
-    
+    parser.add_argument(
+        "--weights",
+        "--model",
+        default=None,
+        help="Path to MineCLIP weights (default: models/attn.pth)",
+    )
+    parser.add_argument(
+        "--device",
+        default="mps",
+        choices=["cpu", "mps", "cuda"],
+        help="Device to run on",
+    )
+    parser.add_argument(
+        "--json", action="store_true", help="Output as JSON instead of text"
+    )
+    parser.add_argument(
+        "--embedding", action="store_true", help="Output just the embedding vector"
+    )
+
     args = parser.parse_args()
-    
+
     if args.weights is None:
-        args.weights = os.path.join(os.path.dirname(__file__), '../models/attn.pth')
-    
+        args.weights = os.path.join(os.path.dirname(__file__), "../models/attn.pth")
+
     if not os.path.exists(args.image):
         print(f"Error: Image not found: {args.image}")
         sys.exit(1)
-    
+
     analyzer = MineCLIPAnalyzer(weights_path=args.weights, device=args.device)
-    
+
     if args.embedding:
         embedding = analyzer.get_embedding(args.image)
         if args.json:

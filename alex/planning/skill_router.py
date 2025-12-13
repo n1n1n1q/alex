@@ -11,15 +11,4 @@ class SkillRouter:
     """
 
     def to_skill(self, subgoal: Subgoal) -> SkillRequest:
-        # mapping: Dict[str, str] = {
-        #     "collect_wood": "gather_wood",
-        #     "craft_table": "craft_table",
-        #     "idle_scan": "idle_scan",
-        #     "emergency_retreat": "retreat",
-        #     "seek_shelter": "build_shelter",
-        #     "block_in": "build_shelter",
-        #     "eat_food": "gather_food",
-        #     "fight_mob": "fight_mob",
-        # }
-        # skill_name = mapping.get(subgoal.name, subgoal.name)
         return SkillRequest(name=subgoal.name, params=subgoal.params)

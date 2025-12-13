@@ -51,7 +51,7 @@ def download(download_dir: str = None, full: bool = True) -> str:
 
     
     if not os.path.exists(download_fn):
-        print(f"Downloading {url} to {download_fn}...")
+        print(f"Downloading {url} to {download_fn}...", file=sys.stderr)
         wget.download(url, out=download_fn, bar=bar_progress)
         print()  
 

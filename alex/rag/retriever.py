@@ -1,4 +1,5 @@
 import os
+import sys
 from .wiki_dataset import WikiDataset
 
 class WikiRetriever:
@@ -6,7 +7,7 @@ class WikiRetriever:
         self.use_vector_db = use_vector_db
         self.collection = None
         
-        print("[RAG] Loading Wiki Dataset...")
+        print("[RAG] Loading Wiki Dataset...", file=sys.stderr)
 
         repo_root = os.path.dirname(
             os.path.dirname(
@@ -32,7 +33,7 @@ class WikiRetriever:
             
             # If empty, populate index
             if self.collection.count() == 0:
-                print("[RAG] Building Index (this may take a moment)...")
+                print("[RAG] Building Index (this may take a moment)...", file=sys.stderr)
                 ids = []
                 documents = []
                 metadatas = []
@@ -60,10 +61,10 @@ class WikiRetriever:
                         documents=documents,
                         metadatas=metadatas
                     )
-                print(f"[RAG] Indexed {len(documents)} articles.")
+                print(f"[RAG] Indexed {len(documents)} articles.", file=sys.stderr)
                 
         except ImportError:
-            print("[RAG] CRITICAL: 'chromadb' not found. RAG disabled.")
+            print("[RAG] CRITICAL: 'chromadb' not found. RAG disabled.", file=sys.stderr)
             self.use_vector_db = False
 
     def retrieve(self, query: str, k: int = 2) -> list[str]:
@@ -79,6 +80,6 @@ class WikiRetriever:
                 # Chroma returns a list of lists (one per query)
                 return results['documents'][0]
             except Exception as e:
-                print(f"[RAG Error] {e}")
+                print(f"[RAG Error] {e}", file=sys.stderr)
                 return []
         return []

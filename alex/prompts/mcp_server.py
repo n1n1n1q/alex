@@ -1,5 +1,29 @@
-import json
 import sys
+import os
+
+class StderrPrinter:
+    def __init__(self):
+        self.buffer = sys.stderr.buffer
+        self.encoding = sys.stderr.encoding
+
+    def write(self, message):
+        sys.stderr.write(message)
+
+    def flush(self):
+        sys.stderr.flush()
+        
+    def isatty(self):
+        return sys.stderr.isatty()
+
+original_stdout = sys.stdout
+sys.stdout = StderrPrinter()
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_dir, "../../"))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+import json
 from typing import Any, Dict, List
 from mcp.server.fastmcp import FastMCP
 from few_shot_prompts import FEW_SHOT_EXAMPLES

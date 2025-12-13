@@ -18,7 +18,7 @@ class MetaPlanner:
 
         for new_subgoal in new_subgoals:
             if new_subgoal not in self.backlog:
-                self.backlog.append(new_subgoal) 
+                self.backlog.append(new_subgoal)
 
         return self.backlog
 

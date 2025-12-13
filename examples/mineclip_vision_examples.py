@@ -5,7 +5,7 @@ import torchvision.transforms as T
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../submodules/MineCLIP'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../submodules/MineCLIP"))
 
 try:
     from mineclip import MineCLIP
@@ -26,61 +26,60 @@ class MineCLIPVisionModule:
             mlp_adapter_spec="v0-2.t0",
             hidden_dim=hidden_dim,
         ).to(device)
-        
+
         if os.path.exists(weights_path):
             self.model.load_ckpt(weights_path, strict=True)
             print(f"✓ Loaded MineCLIP weights from {weights_path}")
         else:
             print(f"⚠ Weights not found at {weights_path}")
             print("  Download from: https://github.com/MineDojo/MineCLIP")
-        
+
         self.model.eval()
-        self.transform = T.Compose([
-            T.Resize((160, 256)),
-            T.ToTensor(),
-            T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-        ])
-    
+        self.transform = T.Compose(
+            [
+                T.Resize((160, 256)),
+                T.ToTensor(),
+                T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+            ]
+        )
+
     def encode_image(self, image_or_path):
         if isinstance(image_or_path, str):
-            image = Image.open(image_or_path).convert('RGB')
+            image = Image.open(image_or_path).convert("RGB")
         else:
             image = image_or_path
-        
+
         image_tensor = self.transform(image).unsqueeze(0).unsqueeze(0).to(self.device)
-        
+
         with torch.no_grad():
             embedding = self.model.encode_video(image_tensor)
-        
+
         return embedding.squeeze(0).cpu()
-    
+
     def query_similarity(self, image_or_path, text_query: str) -> float:
         if isinstance(image_or_path, str):
-            image = Image.open(image_or_path).convert('RGB')
+            image = Image.open(image_or_path).convert("RGB")
         else:
             image = image_or_path
-        
+
         image_tensor = self.transform(image).unsqueeze(0).unsqueeze(0).to(self.device)
-        
+
         with torch.no_grad():
             image_emb = self.model.encode_video(image_tensor)
             similarity = torch.norm(image_emb, p=2).item()
-        
+
         return similarity
 
 
 def example_scene_understanding():
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("EXAMPLE 1: Scene Understanding")
-    print("="*70)
-    
-    weights_path = os.path.join(os.path.dirname(__file__), '../models/attn.pth')
-    
-    vision = MineCLIPVisionModule(
-        weights_path=weights_path,
-        device="mps"
-    )
-    
+    print("=" * 70)
+
+    weights_path = os.path.join(os.path.dirname(__file__), "../models/attn.pth")
+
+    vision = MineCLIPVisionModule(weights_path=weights_path, device="mps")
+
     scene_queries = {
         "has_hostile_mobs": "skeleton creeper zombie nearby",
         "has_animals": "cow sheep pig chicken",
@@ -90,12 +89,12 @@ def example_scene_understanding():
         "time_of_day": "night dark sunset sunrise",
         "biome_type": "forest desert mountain plains jungle",
     }
-    
+
     screenshot_path = "examples/mineclip_examples/images/example.png"
-    
+
     if os.path.exists(screenshot_path):
         print(f"\nAnalyzing: {screenshot_path}\n")
-        
+
         for aspect, query in scene_queries.items():
             score = vision.query_similarity(screenshot_path, query)
             print(f"  {aspect:20} | Score: {score:.3f} | Query: {query}")
@@ -107,17 +106,14 @@ def example_scene_understanding():
 
 
 def example_goal_aware_planning():
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("EXAMPLE 2: Goal-Aware Vision for Planning")
-    print("="*70)
-    
-    weights_path = os.path.join(os.path.dirname(__file__), '../models/attn.pth')
-    
-    vision = MineCLIPVisionModule(
-        weights_path=weights_path,
-        device="mps"
-    )
-    
+    print("=" * 70)
+
+    weights_path = os.path.join(os.path.dirname(__file__), "../models/attn.pth")
+
+    vision = MineCLIPVisionModule(weights_path=weights_path, device="mps")
+
     goal_queries = {
         "gather_wood": ["trees nearby", "forest biome", "wood blocks visible"],
         "hunt_animals": ["animals visible", "open field", "mobs in view"],
@@ -125,7 +121,7 @@ def example_goal_aware_planning():
         "find_water": ["water body", "river stream", "ocean sea"],
         "seek_shelter": ["cave entrance", "shelter building", "enclosed space"],
     }
-    
+
     print("\nGoal-specific vision queries:")
     for goal, queries in goal_queries.items():
         print(f"\n  Goal: {goal}")
@@ -134,18 +130,15 @@ def example_goal_aware_planning():
 
 
 def example_vision_based_reward():
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("EXAMPLE 3: Vision-Based Reward Signals")
-    print("="*70)
-    
-    weights_path = os.path.join(os.path.dirname(__file__), '../models/attn.pth')
-    
-    vision = MineCLIPVisionModule(
-        weights_path=weights_path,
-        device="mps"
-    )
-    
-    code_example = '''
+    print("=" * 70)
+
+    weights_path = os.path.join(os.path.dirname(__file__), "../models/attn.pth")
+
+    vision = MineCLIPVisionModule(weights_path=weights_path, device="mps")
+
+    code_example = """
 def compute_vision_reward(vision_module, frame, goal):
     frame_embedding = vision_module.encode_image(frame)
     goal_similarity = vision_module.query_similarity(frame, goal)
@@ -157,23 +150,20 @@ def compute_vision_reward(vision_module, frame, goal):
     
     total_reward = progress_reward + danger_penalty
     return total_reward
-'''
+"""
     print(code_example)
 
 
 def example_state_for_llm():
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("EXAMPLE 4: Visual State for LLM Prompts")
-    print("="*70)
-    
-    weights_path = os.path.join(os.path.dirname(__file__), '../models/attn.pth')
-    
-    vision = MineCLIPVisionModule(
-        weights_path=weights_path,
-        device="mps"
-    )
-    
-    llm_prompt_template = '''
+    print("=" * 70)
+
+    weights_path = os.path.join(os.path.dirname(__file__), "../models/attn.pth")
+
+    vision = MineCLIPVisionModule(weights_path=weights_path, device="mps")
+
+    llm_prompt_template = """
 Current Visual Context:
 - Environment: [BIOME_TYPE] biome
 - Time: [TIME_OF_DAY]
@@ -188,23 +178,20 @@ Decision: Based on the visual context above, what should I do next?
 Previous Actions: [ACTION_HISTORY]
 
 Your action:
-'''
+"""
     print(llm_prompt_template)
 
 
 def example_scene_clustering():
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("EXAMPLE 5: Scene Clustering via Embeddings")
-    print("="*70)
-    
-    weights_path = os.path.join(os.path.dirname(__file__), '../models/attn.pth')
-    
-    vision = MineCLIPVisionModule(
-        weights_path=weights_path,
-        device="mps"
-    )
-    
-    code_example = '''
+    print("=" * 70)
+
+    weights_path = os.path.join(os.path.dirname(__file__), "../models/attn.pth")
+
+    vision = MineCLIPVisionModule(weights_path=weights_path, device="mps")
+
+    code_example = """
 class SceneMemory:
     def __init__(self, vision_module):
         self.vision = vision_module
@@ -225,16 +212,16 @@ class SceneMemory:
         ]
         top_k_indices = np.argsort(similarities)[-k:]
         return [self.scenes[i] for i in top_k_indices]
-'''
+"""
     print(code_example)
 
 
 def example_skill_selection():
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("EXAMPLE 6: Vision-Guided Skill Selection")
-    print("="*70)
-    
-    code_example = '''
+    print("=" * 70)
+
+    code_example = """
 class SkillRouter:
     def __init__(self, vision_module):
         self.vision = vision_module
@@ -255,16 +242,16 @@ class SkillRouter:
         
         best_skill = max(scores, key=scores.get)
         return best_skill
-'''
+"""
     print(code_example)
 
 
 def example_integration_pattern():
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("EXAMPLE 7: Integration Pattern")
-    print("="*70)
-    
-    integration_code = '''
+    print("=" * 70)
+
+    integration_code = """
 from mineclip_vision_examples import MineCLIPVisionModule
 
 class GameStateWithVision:
@@ -292,15 +279,15 @@ class AgentWithVision:
         state = GameStateWithVision(raw_obs, self.vision)
         goal = self.planner.plan(state)
         return goal
-'''
+"""
     print(integration_code)
 
 
 if __name__ == "__main__":
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("MineCLIP Usage Examples for Minecraft Agent Vision")
-    print("="*70)
-    
+    print("=" * 70)
+
     example_scene_understanding()
     example_goal_aware_planning()
     example_vision_based_reward()
@@ -308,7 +295,7 @@ if __name__ == "__main__":
     example_scene_clustering()
     example_skill_selection()
     example_integration_pattern()
-    
-    print("\n" + "="*70)
+
+    print("\n" + "=" * 70)
     print("Examples Complete")
-    print("="*70)
+    print("=" * 70)

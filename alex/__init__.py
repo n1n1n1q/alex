@@ -2,7 +2,7 @@
 Alex - Hierarchical Minecraft Agent
 
 Organized module structure:
-- core: Fundamental types, configuration, and state management  
+- core: Fundamental types, configuration, and state management
 - planning: Planners, metaplanner, reflex, and skill routing
 - execution: Policy executors and STEVE-1 integration
 - prompts: Prompt generation and MCP server
@@ -18,7 +18,6 @@ Usage:
 
 __version__ = "0.1.0"
 
-# Main components (imported here for convenience)
 from .agent import Agent, VerboseAgent
 from .agent_vision import AgentVision
 

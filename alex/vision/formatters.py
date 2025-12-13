@@ -12,15 +12,17 @@ class VisionFormatter:
             else:
                 lines.append(f"  {name:15} [{bar}] {score:.2f}")
         return "\n".join(lines)
-    
+
     @staticmethod
     def generate_context_string(analysis: dict) -> str:
 
         summary = analysis["summary"]
-        threat_info = summary["top_threat"] if summary["top_threat"] else "none detected"
+        threat_info = (
+            summary["top_threat"] if summary["top_threat"] else "none detected"
+        )
         env = analysis["environment"]
         entities = analysis["entities"]
-        
+
         context = f"""=== MINECRAFT VISUAL ANALYSIS ===
 
 QUICK SUMMARY:
@@ -60,16 +62,13 @@ Structures:
 === END ANALYSIS ===
 """
         return context
-    
+
     @staticmethod
-    def generate_combined_context(
-        global_analysis: dict, 
-        spatial_analysis: dict
-    ) -> str:
+    def generate_combined_context(global_analysis: dict, spatial_analysis: dict) -> str:
 
         global_context = VisionFormatter.generate_context_string(global_analysis)
         spatial_desc = spatial_analysis["description"]
-        
+
         if spatial_analysis.get("detections"):
             detections_str = "\n\nSPATIAL DETECTIONS (with locations):\n"
             for det in spatial_analysis["detections"][:5]:
@@ -79,7 +78,7 @@ Structures:
                     f"(confidence: {det['confidence']:.2%})\n"
                 )
             spatial_desc = spatial_desc + detections_str
-        
+
         combined = f"""{global_context}
 
 {spatial_desc}

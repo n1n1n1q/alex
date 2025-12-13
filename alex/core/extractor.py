@@ -5,7 +5,12 @@ import numpy as np
 from PIL import Image
 
 from .types import GameState
-from ..utils.serialization import to_serializable, to_json_str as _to_json_str, to_json_file as _to_json_file
+from ..utils.serialization import (
+    to_serializable,
+    to_json_str as _to_json_str,
+    to_json_file as _to_json_file,
+)
+
 
 def _aggregate_inventory(inv: dict) -> dict:
     """
@@ -33,7 +38,9 @@ def extract_state(raw_info: Dict) -> GameState:
 
     env_state["biome_id"] = info.get("location_stats", {}).get("biome_id")
     env_state["biome_rainfall"] = info.get("location_stats", {}).get("biome_rainfall")
-    env_state["biome_temperature"] = info.get("location_stats", {}).get("biome_temperature")
+    env_state["biome_temperature"] = info.get("location_stats", {}).get(
+        "biome_temperature"
+    )
     env_state["can_see_sky"] = info.get("location_stats", {}).get("can_see_sky")
     env_state["is_raining"] = info.get("location_stats", {}).get("is_raining")
     env_state["light_level"] = info.get("location_stats", {}).get("light_level")
@@ -84,6 +91,7 @@ def extract_state(raw_info: Dict) -> GameState:
         extras=extras,
     )
 
+
 def extract_pov(raw_obs: Dict, raw_info: Dict, resized: bool = True) -> np.ndarray:
     """
     Extract POV image (H, W, 3) from raw observation or info.
@@ -109,6 +117,7 @@ def extract_pov(raw_obs: Dict, raw_info: Dict, resized: bool = True) -> np.ndarr
 
     return image
 
+
 def pov_to_image(pov: np.ndarray) -> Any:
     """
     Convert POV array to image format.
@@ -116,6 +125,7 @@ def pov_to_image(pov: np.ndarray) -> Any:
     if pov is None:
         return None
     return Image.fromarray(pov)
+
 
 def pov_to_image_file(pov: np.ndarray, filepath: str) -> None:
     """
@@ -126,11 +136,13 @@ def pov_to_image_file(pov: np.ndarray, filepath: str) -> None:
     image = Image.fromarray(pov)
     image.save(filepath)
 
+
 def state_to_json_str(state: GameState) -> str:
     """
     Convert GameState to JSON string.
     """
     return _to_json_str(state)
+
 
 def state_to_json_file(state: GameState, filepath: str) -> None:
     """

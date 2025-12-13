@@ -6,87 +6,60 @@ import requests
 import wget
 
 
-def get_doi(link):
+def get_doi(link: str) -> str:
     response = requests.get(link)
     return response.url
 
 
 DOWNLOAD_URLS = {
-    "youtube": {
-        "full": f"{get_doi('https://doi.org/10.5281/zenodo.6641142')}/files/youtube_full.json",
-        "tutorial": f"{get_doi('https://doi.org/10.5281/zenodo.6641142')}/files/youtube_tutorial.json",
-    },
-    "wiki": {
-        "full": f"{get_doi('https://doi.org/10.5281/zenodo.6640448')}/files/wiki_full.zip",
-        "samples": f"{get_doi('https://doi.org/10.5281/zenodo.6640448')}/files/wiki_samples.zip",
-    },
-    "reddit": {
-        "full": f"{get_doi('https://doi.org/10.5281/zenodo.6641114')}/files/reddit.json",
-    },
+    "full": f"{get_doi('https://doi.org/10.5281/zenodo.6640448')}/files/wiki_full.zip",
+    "samples": f"{get_doi('https://doi.org/10.5281/zenodo.6640448')}/files/wiki_samples.zip",
 }
 
 
-def get_fn(source: str = "youtube", download_dir: str = None, full: bool = True):
-    url = DOWNLOAD_URLS[source][
-        "full" if full else "tutorial" if source == "youtube" else "samples"
-    ]
-    fn = wget.filename_from_url(url)
-    extracted_fn = fn if source != "wiki" else fn.replace(".zip", "")
-    extracted_fn = os.path.join(download_dir, extracted_fn)
+def get_fn(download_dir: str, full: bool = True):
+    url = DOWNLOAD_URLS["full" if full else "samples"]
+
+    fn = wget.filename_from_url(url)          
+    extracted_name = fn.replace(".zip", "")   
+
     download_fn = os.path.join(download_dir, fn)
+    extracted_fn = os.path.join(download_dir, extracted_name)
 
     return extracted_fn, download_fn, url
 
 
-def download(source: str = "youtube", download_dir: str = None, full: bool = True):
-    r"""Function that downloads the datasets of MineDojo to local.
+def download(download_dir: str = None, full: bool = True) -> str:
+    """Download MineDojo Wiki dataset.
 
     Args:
-        source (string): the sub-dataset name:
-            ``'youtube'`` | ``'wiki'`` | ``'reddit'``
-        download_dir (string, optional): Directory path where the downloaded data will be saved.
-            The default directory is ``~/.minedojo/``.
-        full (bool, optional): Only useful when ``source='youtube'`` or ``source='wiki'``. If set to ``False``, only the tutorial version
-            of YouTube dataset or the sample version of Wiki dataset will be downloaded. Default is ``True``.
+        download_dir: where to store data (default: ~/.minedojo)
+        full: True -> wiki_full.zip, False -> wiki_samples.zip
 
     Returns:
-        Directory path to downloaded (extracted) file or folder.
-
-    Examples::
-        >>> from minedojo.data.download import download
-        >>> print(download("youtube", full=False))
-        '~/.minedojo/youtube_tutorial.json'
-        >>> print(download("wiki", full=False))
-        '~/.minedojo/wiki_samples'
-        >>> print(download("reddit"))
-        '~/.minedojo/reddit.json'
+        Path to extracted folder (e.g., ~/.minedojo/wiki_full or ~/.minedojo/wiki_samples)
     """
-
     if download_dir is None:
         download_dir = os.path.join(os.path.expanduser("~"), ".minedojo")
-    if not os.path.exists(download_dir):
-        os.makedirs(download_dir)
+    os.makedirs(download_dir, exist_ok=True)
 
-    if source == "reddit" and not full:
-        print(
-            "Reddit dataset does not have a sample version. Will download / use the full version."
-        )
-        full = True
+    extracted_fn, download_fn, url = get_fn(download_dir, full)
 
-    extracted_fn, download_fn, url = get_fn(source, download_dir, full)
-
-    if os.path.exists(extracted_fn) and (
-        source != "wiki" or not os.path.exists(download_fn)
-    ):
+    
+    if os.path.exists(extracted_fn):
         return extracted_fn
-    elif not os.path.exists(download_fn):
+
+    
+    if not os.path.exists(download_fn):
         print(f"Downloading {url} to {download_fn}...")
         wget.download(url, out=download_fn, bar=bar_progress)
+        print()  
 
-    if source == "wiki":
-        with zipfile.ZipFile(download_fn, "r") as zip_ref:
-            zip_ref.extractall(download_dir)
-        os.remove(download_fn)
+    
+    with zipfile.ZipFile(download_fn, "r") as zip_ref:
+        zip_ref.extractall(download_dir)
+
+    os.remove(download_fn)
 
     return extracted_fn
 

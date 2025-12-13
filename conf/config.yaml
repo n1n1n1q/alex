@@ -9,7 +9,7 @@ use_steve_executor: true
 # Model + device settings
 steve_model_path: "CraftJarvis/MineStudio_STEVE-1.official"
 mineclip_weights_path: null  # will fall back to bundled avg.pth if present
-device: cuda  # "cuda" | "cpu" | null (auto)
+device: cpu  # "cuda" | "cpu" | null (auto)
 
 steve_default_cond_scale: 5.0
 steve_default_max_steps: 100
@@ -21,7 +21,7 @@ hf_reflex_model_name: null
 hf_reflex_temperature: 0.35
 hf_reflex_max_tokens: 96
 
-mcp_server_path: "mcp_server.py"
+mcp_server_path: "alex/prompts/mcp_server.py"
 
 verbose: true
 

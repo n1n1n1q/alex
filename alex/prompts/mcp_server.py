@@ -1,46 +1,45 @@
 import json
 from typing import Any, Dict, List
 from mcp.server.fastmcp import FastMCP
-from alex.prompts.few_shot_prompts import FEW_SHOT_EXAMPLES
+from few_shot_prompts import FEW_SHOT_EXAMPLES
 
 
 mcp = FastMCP("minecraft-planner")
 
-SYSTEM_PROMPT = """You are an expert Minecraft strategist and planner. Your job is to analyze the current game state and create a structured action plan that will help the player survive and progress.
+MEMORY_BUFFER = []
+MAX_MEMORY_LENGTH = 3
 
-**CRITICAL: You must respond with ONLY valid JSON. No markdown, no code blocks, no explanations outside the JSON.**
+SYSTEM_PROMPT = """You are an expert Minecraft strategist and planner. Your job is to analyze the current game state and create a structured action plan.
+
+**CRITICAL: You must respond with ONLY valid JSON.**
 
 Output Format:
 {
-    "reasoning": "Brief explanation of your strategy (2-3 sentences)",
+    "reasoning": "Strategy explanation",
     "subgoals": [
-        {"name": "action_name", "params": {...}, "priority": 0-100}
+        {"name": "STEVE-1 command", "params": {}, "priority": 0-100}
     ],
-    "immediate_action": "what to do right now",
-    "context_notes": ["observation1", "observation2"]
+    "immediate_action": "STEVE-1 command",
+    "context_notes": ["note1"]
 }
 
-Priority Guidelines:
-- 100: Life-threatening emergencies (health < 5, imminent death)
-- 90-95: Urgent safety (low health, night threats, no shelter)
-- 70-85: Important progression (tools, resources, shelter)
-- 50-65: Medium-term goals (exploration, mining)
-- 0-40: Low priority (aesthetic, optional tasks)
+**ACTION RULES (STEVE-1 FORMAT):**
+1. Actions must be **2-3 words** maximum.
+2. Structure: **VERB + OBJECT** (e.g., "mine log", "kill cow", "craft table").
+3. Use Minecraft IDs for objects (log, dirt, stone, iron_ore).
+4. Do NOT use abstract skills like "collect_wood" or "hunt_food".
 
-Key Principles:
-1. **Safety first**: Always consider health, hunger, time of day, and nearby threats
-2. **Prerequisites**: Don't plan actions that require unavailable resources
-3. **Progression**: Early game focuses on wood -> crafting table -> tools -> mining
-4. **Context awareness**: Consider biome, inventory, and environmental factors
-5. **Immediacy**: The immediate_action should be executable right now with current resources
+Examples of valid actions:
+- "mine log" (NOT collect_wood)
+- "mine stone"
+- "kill cow" (NOT hunt_food)
+- "kill zombie"
+- "craft planks"
+- "craft sticks"
+- "place dirt"
+- "look around"
 
-Common Action Names:
-- Resource: collect_wood, collect_cobblestone, mine_iron, mine_diamonds, hunt_food
-- Crafting: craft_table, craft_planks, craft_wooden_pickaxe, craft_stone_pickaxe, craft_stone_sword, craft_furnace
-- Survival: build_shelter, seek_shelter, emergency_retreat, eat_food, heal
-- Exploration: explore, scout_area, idle_scan
-
-Remember: Respond with ONLY the JSON object, nothing else.
+For dynamic targets (e.g. hunting), construct the string yourself: "kill {mob_name}".
 """
 
 
@@ -68,6 +67,19 @@ def plan_actions(game_state: dict) -> str:
     ]
     prompt = SYSTEM_PROMPT + "\n\n"
 
+    if MEMORY_BUFFER:
+        prompt += "=== PREVIOUS HISTORY (Short-term Memory) ===\n"
+        prompt += "Here is what you planned in the previous steps. Use this to maintain continuity.\n\n"
+        for i, memory in enumerate(MEMORY_BUFFER, 1):
+            turn_num = len(MEMORY_BUFFER) - i + 1
+            prompt += f"Turn -{turn_num}:\n"
+            prompt += f"  Reasoning: {memory['reasoning']}\n"
+            prompt += f"  Action Taken: {memory['immediate_action']}\n"
+            # We explicitly list subgoals to remind the agent of its medium-term plan
+            prompt += f"  Subgoals Set: {json.dumps(memory['subgoals'])}\n"
+            prompt += "---\n"
+        prompt += "\n"
+
     prompt += "=== ALLOWED ACTIONS (you MUST use only these) ===\n"
 
     prompt += json.dumps(allowed_actions, indent=2) + "\n\n"
@@ -92,41 +104,37 @@ def plan_actions(game_state: dict) -> str:
 def get_planning_guidelines() -> dict:
 
     return {
-        "priority_levels": {
-            "100": "Life-threatening emergencies",
-            "90-95": "Urgent safety issues",
-            "70-85": "Important progression",
-            "50-65": "Medium-term goals",
-            "0-40": "Low priority tasks"
-        },
         "subgoals": {
-            "resource_gathering": [
-                "collect_wood",
-                "collect_cobblestone",
-                "mine_iron",
-                "mine_diamonds",
-                "hunt_food"
+            "gathering": [
+                "mine log",
+                "mine dirt",
+                "mine stone",
+                "mine iron_ore",
+                "mine coal_ore",
+                "mine diamond_ore"
+            ],
+            "combat": [
+                "kill cow",
+                "kill sheep",
+                "kill pig",
+                "kill chicken",
+                "kill zombie",
+                "kill skeleton",
+                "kill creeper"
             ],
             "crafting": [
-                "craft_planks",
-                "craft_table",
-                "craft_wooden_pickaxe",
-                "craft_stone_pickaxe",
-                "craft_stone_sword",
-                "craft_furnace",
-                "craft_iron_pickaxe"
+                "craft planks",
+                "craft sticks",
+                "craft crafting_table",
+                "craft stone_pickaxe",
+                "craft furnace",
+                "craft torch"
             ],
             "survival": [
-                "emergency_retreat",
-                "seek_shelter",
-                "build_shelter",
-                "eat_food",
-                "heal"
-            ],
-            "exploration": [
-                "explore",
-                "scout_area",
-                "idle_scan"
+                "place dirt",
+                "place cobblestone",
+                "eat food",
+                "look around"
             ]
         },
         "progression_order": [
@@ -146,7 +154,7 @@ def get_planning_guidelines() -> dict:
             "Seek shelter before night (time_of_day=dusk)",
             "Avoid combat with low health",
             "Prioritize food when hunger is low",
-            "Keep torches for night-time safety"
+            "Craft and place torches for night-time safety"
         ]
     }
 

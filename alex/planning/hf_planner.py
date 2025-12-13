@@ -152,8 +152,6 @@ class HuggingFacePlanner(BasePlanner):
             print(f"[Input State]")
             print(f"  Inventory: {state_dict.get('inventory', {})}")
 
-        print(">>> [STATE DICT]", state_dict)
-
         try:
             if self.verbose:
                 print(

@@ -399,12 +399,13 @@ class AlexAgentCallback(MinecraftCallback):
                     f"Error at step {self.timestep}: {str(e)[:200]}"
                 )
 
-        obs["condition"] = {"cond_scale": self.cond_scale, "text": "chop a tree"}
+        obs["condition"] = {"cond_scale": self.cond_scale, "text": self.current_command}
 
         if info is not None:
             self.debug_frame = self._add_debug_panel_to_frame(info["pov"])
 
         return obs, reward, terminated, truncated, info
+
 
 
 class DebugRecordCallback(MinecraftCallback):
@@ -456,7 +457,7 @@ class DebugRecordCallback(MinecraftCallback):
 
         return obs, reward, terminated, truncated, info
 
-    def after_close(self, sim):
+    def before_close(self, sim):
         if self.video_writer is not None:
             self.video_writer.release()
             print(f"[DEBUG RECORDER] Saved {self.frame_count} frames")
@@ -590,8 +591,8 @@ if __name__ == "__main__":
     run_agent_with_recording(
         description="wood_and_crafting_table",
         num_episodes=1,
-        max_steps=1000,
-        update_interval=100,
+        max_steps=2000,
+        update_interval=250,
         cond_scale=10.0,
         verbose=True,
     )

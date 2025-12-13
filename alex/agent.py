@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Dict, Any, Optional
+from unittest import result
 
 from .core.types import GameState, SkillResult
 from .core.extractor import extract_state
@@ -68,6 +69,9 @@ class Agent:
         self.metaplanner = metaplanner or MetaPlanner()
         self.router = router or SkillRouter()
 
+
+        self.current_goal = None
+
     def step(
         self, raw_obs: Dict[str, Any], state: Optional[GameState] = None
     ) -> SkillResult:
@@ -128,6 +132,8 @@ class VerboseAgent(Agent):
         self.planner._ensure_resources()
         print(f"  [Planner] Analyzing state and generating subgoals...")
 
+        state.extras = {'current_goal': self.current_goal}
+
         subgoals = self.planner.plan(state)
         print(f"  [Planner] Generated {len(subgoals)} subgoal(s):")
         for sg in subgoals:
@@ -149,17 +155,11 @@ class VerboseAgent(Agent):
 
         print(f"  [MetaPlanner] Selected next goal: {next_goal.name}")
 
-        print(f"  [Router] Routing goal to skill...")
-        skill_req = self.router.to_skill(next_goal)
-        print(f"  [Router] Skill request: {skill_req}")
+        result = {'status': 'SUCCESS'}
 
-        print(f"  [Executor] Executing skill...")
+        result['info'] = {'steve_prompt': next_goal.name} 
 
-        result = {"info": {"steve_prompt": "mine logs"}, "status": "SUCCESS"}
-
-        print(f"  [Executor] Status: {result.get('status', 'unknown')}")
-        if result.get("info", {}).get("steve_prompt"):
-            print(f"  [Executor] STEVE-1 Prompt: '{result['info']['steve_prompt']}'")
+        self.current_goal = next_goal.name
 
         if (
             hasattr(self.planner, "_last_raw_response")

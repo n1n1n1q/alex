@@ -9,7 +9,8 @@ mcp = FastMCP("minecraft-planner")
 MEMORY_BUFFER = []
 MAX_MEMORY_LENGTH = 3
 
-SYSTEM_PROMPT = """You are an expert Minecraft strategist and planner. Your job is to analyze the current game state and create a structured action plan.
+SYSTEM_PROMPT = """
+You are an Minecraft short time task planner. Your job is to analyze the current game state and create a structured action plan.
 
 **CRITICAL: You must respond with ONLY valid JSON.**
 
@@ -79,6 +80,7 @@ def plan_actions(game_state: dict) -> str:
 
     prompt += json.dumps(allowed_actions, indent=2) + "\n\n"
     prompt += "Do NOT create or invent actions outside this list.\n\n"
+    prompt += "If current goal is not completed do not start a new one. \n\n"
 
     prompt += "=== EXAMPLES ===\n\n"
 
@@ -90,7 +92,7 @@ def plan_actions(game_state: dict) -> str:
 
     prompt += "=== YOUR TASK ===\n\n"
     prompt += f"Current Game State:\n{json.dumps(game_state, indent=2)}\n\n"
-    prompt += "Generate an action plan following the format above. Generate only ONE or TWO subgoals. Respond with ONLY the JSON object, no markdown, no code blocks.\n"
+    prompt += "Generate an action plan following the format above. Generate only ONE subgoal. Respond with ONLY the JSON object, no markdown, no code blocks.\n"
 
     return prompt
 

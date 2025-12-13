@@ -1,4 +1,5 @@
 import json
+import sys
 from typing import Any, Dict, List
 from mcp.server.fastmcp import FastMCP
 from few_shot_prompts import FEW_SHOT_EXAMPLES
@@ -8,7 +9,7 @@ try:
     # Initialize once globally to avoid reloading/indexing on every request
     retriever = WikiRetriever() 
 except Exception as e:
-    print(f"RAG Init Failed: {e}")
+    print("[MCP LOG] Initializing RAG failed:", file=sys.stderr)
     retriever = None
 
 mcp = FastMCP("minecraft-planner")
@@ -91,7 +92,7 @@ def plan_actions(game_state: dict) -> str:
                     unique_items.add(item["name"])
                     search_queries.append(f"{item['name']} usage")
 
-        print(f"[RAG] Planning prompt queries: {search_queries}")
+        print(f"[RAG] Planning prompt queries: {search_queries}", file=sys.stderr)
 
     # Execute Search
         wiki_context = []
@@ -106,7 +107,7 @@ def plan_actions(game_state: dict) -> str:
                 prompt += f"- {info}\n"
             prompt += "\n"
 
-            print(f"[RAG] Wiki context added to planning prompt.")
+            print(f"[RAG] Wiki context added to planning prompt.", file=sys.stderr)
 
     if MEMORY_BUFFER:
         prompt += "=== PREVIOUS HISTORY (Short-term Memory) ===\n"

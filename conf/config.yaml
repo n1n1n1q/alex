@@ -14,7 +14,7 @@ device: cpu  # "cuda" | "cpu" | null (auto)
 steve_default_cond_scale: 5.0
 steve_default_max_steps: 100
 
-hf_model_name: "Qwen/Qwen2.5-1.5B-Instruct"
+hf_model_name: "Qwen/Qwen2.5-7B-Instruct"
 hf_temperature: 0.6
 hf_max_tokens: 1024
 hf_reflex_model_name: null

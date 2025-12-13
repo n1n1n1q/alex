@@ -23,7 +23,7 @@ class HuggingFacePlanner(BasePlanner):
 
     def __init__(
         self,
-        model_name: str = "Qwen/Qwen2.5-1.5B-Instruct",
+        model_name: str = "Qwen/Qwen2.5-7B-Instruct",
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
         mcp_server_path: str = "alex.prompts.mcp_server",
         verbose: bool = True,

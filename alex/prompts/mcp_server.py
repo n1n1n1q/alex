@@ -29,16 +29,28 @@ Output Format:
 2. Structure: **VERB + OBJECT** (e.g., "mine log", "kill cow", "craft table").
 3. Use Minecraft IDs for objects (log, dirt, stone, iron_ore).
 4. Do NOT use abstract skills like "collect_wood" or "hunt_food".
+5. Do NOT suggest skill that can't be done imediately 
 
 Examples of valid actions:
-- "mine log" (NOT collect_wood)
+- "gather wood"
 - "mine stone"
-- "kill cow" (NOT hunt_food)
+- "kill cow"
 - "kill zombie"
 - "craft planks"
 - "craft sticks"
 - "place dirt"
 - "look around"
+
+**PROGRESSION RULES**
+Follow precisely this plan: 
+
+"1. Collect wood (logs)",
+"2. Craft planks from logs",
+"3. Craft crafting table",
+"4. Craft wooden pickaxe",
+
+Do not make tasks from next levels if previous wasn't done
+
 
 For dynamic targets (e.g. hunting), construct the string yourself: "kill {mob_name}".
 """
@@ -103,7 +115,7 @@ def get_planning_guidelines() -> dict:
     return {
         "subgoals": {
             "gathering": [
-                "mine log",
+                "gather wood",
                 "mine dirt",
                 "mine stone",
                 "mine iron_ore",

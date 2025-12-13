@@ -43,9 +43,9 @@ class WikiDataset:
             download_dir = os.path.join(os.path.expanduser("~"), ".minedojo")
 
         if download:
-            self.root = dl("wiki", download_dir, full)
+            self.root = dl(download_dir=download_dir, full=full)
         else:
-            self.root, _, url = get_fn("wiki", download_dir, full)
+            self.root, _, url = get_fn(download_dir=download_dir, full=full)
             assert os.path.exists(self.root), (
                 f"Wiki data folder {self.root} does not exist. "
                 "Please set download=True or you can manually "

@@ -29,7 +29,6 @@ sim = MinecraftSim(
 )
 obs, info = sim.reset()
 
-# Collect and save POV image every 10 steps
 for i in range(51):
     action = sim.action_space.sample()
     obs, reward, terminated, truncated, info = sim.step(action)

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from alex import Agent
 
-# Minimal raw observation compatible with our state_extractor
 RAW_OBS = {
     "inventory": {"logs": 0, "planks": 0},
     "health": 20,

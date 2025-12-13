@@ -7,7 +7,6 @@ import os
 from PIL import Image
 import torchvision.transforms as T
 
-# Add MineCLIP to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../submodules/MineCLIP"))
 
 try:
@@ -26,12 +25,10 @@ class SpatialAttentionMap:
         self.model = mineclip_model
         self.device = device
 
-        # Image dimensions for MineCLIP
         self.img_height = 160
         self.img_width = 256
         self.patch_size = 16
 
-        # Image transform
         self.transform = T.Compose(
             [
                 T.Resize((self.img_height, self.img_width)),
@@ -39,14 +36,11 @@ class SpatialAttentionMap:
             ]
         )
 
-        # Resulting patch grid dimensions
         self.grid_rows = self.img_height // self.patch_size  # 10
-        self.grid_cols = self.img_width // self.patch_size  # 16
+        self.grid_cols = self.img_width // self.patch_size
 
-        # 4x4 Grid mapping for LLM
         self.semantic_grid_size = 4
 
-        # Depth zones (row ranges in 10x16 grid)
         self.depth_zones = {
             "Sky/Ceiling": (0, 2),  # Top rows 0-2
             "Horizon/Far": (3, 5),  # Middle-top rows 3-5
@@ -54,7 +48,6 @@ class SpatialAttentionMap:
             "Feet/Close": (8, 9),  # Bottom rows 8-9
         }
 
-        # Horizontal zones (column ranges in 10x16 grid)
         self.horizontal_zones = {
             "Left": (0, 3),
             "Center-Left": (4, 7),
@@ -64,7 +57,6 @@ class SpatialAttentionMap:
 
     def get_patch_embeddings(self, image: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
-            # Preprocess the image
             from mineclip.utils import basic_image_tensor_preprocess
 
             MC_IMAGE_MEAN = (0.3331, 0.3245, 0.3051)
@@ -74,10 +66,8 @@ class SpatialAttentionMap:
                 image, mean=MC_IMAGE_MEAN, std=MC_IMAGE_STD
             )
 
-            # Access the vision transformer (image encoder)
             vision_model = self.model.image_encoder
 
-            # Forward through patch embedding layer
             x = vision_model.conv1(image)  # [batch, width, grid_h, grid_w]
             B = x.size(0)
             x = x.reshape(B, x.shape[1], -1)  # [batch, width, grid_h * grid_w]
@@ -89,7 +79,6 @@ class SpatialAttentionMap:
             )  # [batch, num_patches + 1, width]
             x = x + vision_model.pos_embed
 
-            # Pass through transformer blocks
             x = vision_model.ln_pre(x)
             x = x.permute(1, 0, 2)  # NLD -> LND (for transformer)
             x = vision_model.blocks(x)
@@ -98,7 +87,6 @@ class SpatialAttentionMap:
             # Apply layer norm (but don't apply final projection yet)
             x = vision_model.ln_post(x)
 
-            # Remove CLS token (index 0) - we only want spatial patches
             patch_embeddings = x[:, 1:, :]  # [batch, num_patches, width]
 
             # Project to output dimension (512) to match text embedding space

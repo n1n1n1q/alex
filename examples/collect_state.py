@@ -29,7 +29,6 @@ sim = MinecraftSim(
 )
 obs, info = sim.reset()
 
-# Collect and save game state every 10 steps
 for i in range(51):
     action = sim.action_space.sample()
     action["mobs"] = [-3, 3, -3, 3, -3, 3]

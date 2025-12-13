@@ -33,7 +33,6 @@ sim = MinecraftSim(
 )
 obs, info = sim.reset()
 
-# Do nothing for 200 steps to let the world settle
 for i in range(200):
     action = sim.noop_action()
     obs, reward, terminated, truncated, info = sim.step(action)
@@ -41,7 +40,6 @@ for i in range(200):
     if terminated or truncated:
         break
 
-# Collect state and image every 10 steps for 50 steps
 for i in range(51):
     action = sim.action_space.sample()
     action["mobs"] = [-3, 3, -3, 3, -3, 3]

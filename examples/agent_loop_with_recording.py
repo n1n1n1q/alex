@@ -6,6 +6,7 @@ from pathlib import Path
 from datetime import datetime
 from functools import partial
 import ray
+import textwrap
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -27,7 +28,8 @@ class AlexAgentCallback(MinecraftCallback):
                  update_interval: int = 50,
                  cond_scale: float = 5.0,
                  verbose: bool = True,
-                 output_dir: str = None):
+                 output_dir: str = None,
+                 debug_panel_width: int = 512):
 
         super().__init__()
         self.agent = VerboseAgent() if verbose else Agent()
@@ -40,6 +42,66 @@ class AlexAgentCallback(MinecraftCallback):
         self.states_log = []
         self.prompts_log = []
         self.responses_log = []
+        self.debug_panel_width = debug_panel_width
+
+        self.current_llm_prompt = "Initializing..."
+        self.current_steve_prompt = "explore around"
+        self.last_llm_response = ""
+
+        self.debug_frame = None
+        
+    def _add_debug_panel_to_frame(self, frame):
+        """Add debug panel to right side of frame with LLM and Steve prompts."""
+        h, w = frame.shape[:2]
+
+        new_width = w + self.debug_panel_width
+        new_frame = np.zeros((h, new_width, 3), dtype=np.uint8)
+        new_frame[:h, :w] = frame
+        new_frame[:, w:] = (30, 30, 30)
+
+        cv2.line(new_frame, (w, 0), (w, h), (100, 100, 100), 2)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 0.4
+        thickness = 1
+        color = (220, 220, 220)
+        line_height = 15
+        
+        y_pos = 20
+
+        cv2.putText(new_frame, "DEBUG INFO", (w + 10, y_pos), 
+                   font, 0.5, (100, 255, 100), 2)
+        y_pos += 25
+
+        cv2.putText(new_frame, "STEVE-1 PROMPT:", (w + 10, y_pos), 
+                   font, font_scale, (100, 200, 255), thickness)
+        y_pos += line_height + 5
+
+        steve_text = self.current_steve_prompt or "None"
+        wrapped_steve = textwrap.wrap(steve_text, width=55)
+        for line in wrapped_steve[:10]:
+            cv2.putText(new_frame, line, (w + 10, y_pos), 
+                       font, font_scale * 0.9, color, thickness)
+            y_pos += line_height
+        
+        y_pos += 15
+
+        cv2.putText(new_frame, "LLM PROMPT:", (w + 10, y_pos), 
+                   font, font_scale, (255, 200, 100), thickness)
+        y_pos += line_height + 5
+   
+        llm_text = self.current_llm_prompt or "None"
+        wrapped_llm = textwrap.wrap(llm_text, width=55)
+        for line in wrapped_llm[:15]:
+            cv2.putText(new_frame, line, (w + 10, y_pos), 
+                       font, font_scale * 0.9, color, thickness)
+            y_pos += line_height
+            if y_pos > h - 30:
+                break
+
+        cv2.putText(new_frame, f"Step: {self.timestep}", (w + 10, h - 10), 
+                   font, 0.4, (150, 150, 150), thickness)
+        
+        return new_frame
         
     def _save_state(self, state, step: int, phase: str):
         """Save extracted game state to log."""
@@ -113,8 +175,16 @@ class AlexAgentCallback(MinecraftCallback):
             
             print(f"[AGENT] Processing state through pipeline...")
             action = self.agent.step(obs, state)
-            
-            # Save model response if available
+
+            if hasattr(action, 'info') and action.info:
+                if 'raw_model_response' in action.info:
+                    self.last_llm_response = str(action.info['raw_model_response'])[:500]
+                    self.current_llm_prompt = f"Planner response: {self.last_llm_response}"
+                if 'reflex_response' in action.info:
+                    reflex_data = action.info['reflex_response']
+                    if isinstance(reflex_data, dict) and 'raw' in reflex_data:
+                        self.current_llm_prompt = f"Reflex: {str(reflex_data['raw'])[:500]}"
+
             if hasattr(action, 'info') and action.info:
                 model_response = {}
                 if 'raw_model_response' in action.info:
@@ -132,13 +202,16 @@ class AlexAgentCallback(MinecraftCallback):
                 print(f"[AGENT] Action info: {action.info}")
                 if 'steve_prompt' in action.info:
                     self.current_command = action.info['steve_prompt']
+                    self.current_steve_prompt = self.current_command
                     print(f"\n[STEVE-1] Command from action: '{self.current_command}'")
             
             if hasattr(action, 'steve_prompt') and action.steve_prompt:
                 self.current_command = action.steve_prompt
+                self.current_steve_prompt = self.current_command
                 print(f"\n[STEVE-1] Command: '{self.current_command}'")
             elif self.current_command == "explore around":
                 print(f"\n[STEVE-1] Default command: '{self.current_command}'")
+                self.current_steve_prompt = self.current_command
             
             # Save the prompt
             self._save_prompt(self.current_command, self.timestep, "reset")
@@ -150,6 +223,8 @@ class AlexAgentCallback(MinecraftCallback):
             import traceback
             traceback.print_exc()
             self.current_command = "explore around"
+            self.current_steve_prompt = self.current_command
+            self.current_llm_prompt = f"Error: {str(e)[:200]}"
             self._save_prompt(self.current_command, self.timestep, "reset_fallback")
         
         if 'condition' not in obs:
@@ -159,6 +234,10 @@ class AlexAgentCallback(MinecraftCallback):
             "cond_scale": self.cond_scale,
             "text": "chop a tree"
         }
+        
+
+        if 'image' in obs and obs['image'] is not None:
+            self.debug_frame = self._add_debug_panel_to_frame(obs['image'])
         
         return obs, info
     
@@ -192,6 +271,16 @@ class AlexAgentCallback(MinecraftCallback):
                 print(f"\n[AGENT] Running planner...")
                 action = self.agent.step(obs, state)
                 
+                # Extract LLM prompt info
+                if hasattr(action, 'info') and action.info:
+                    if 'raw_model_response' in action.info:
+                        self.last_llm_response = str(action.info['raw_model_response'])[:500]
+                        self.current_llm_prompt = f"Planner response: {self.last_llm_response}"
+                    if 'reflex_response' in action.info:
+                        reflex_data = action.info['reflex_response']
+                        if isinstance(reflex_data, dict) and 'raw' in reflex_data:
+                            self.current_llm_prompt = f"Reflex: {str(reflex_data['raw'])[:500]}"
+                
                 if hasattr(action, 'info') and action.info:
                     model_response = {}
                     if 'raw_model_response' in action.info:
@@ -210,6 +299,7 @@ class AlexAgentCallback(MinecraftCallback):
                     if 'steve_prompt' in action.info:
                         old_command = self.current_command
                         self.current_command = action.info['steve_prompt']
+                        self.current_steve_prompt = self.current_command
                         if old_command != self.current_command:
                             print(f"\n[STEVE-1] COMMAND CHANGED (from info)")
                             print(f"[STEVE-1]   Old: '{old_command}'")
@@ -218,6 +308,7 @@ class AlexAgentCallback(MinecraftCallback):
                 if hasattr(action, 'steve_prompt') and action.steve_prompt:
                     old_command = self.current_command
                     self.current_command = action.steve_prompt
+                    self.current_steve_prompt = self.current_command
                     if old_command != self.current_command:
                         print(f"\n[STEVE-1] COMMAND CHANGED")
                         print(f"[STEVE-1]   Old: '{old_command}'")
@@ -239,6 +330,7 @@ class AlexAgentCallback(MinecraftCallback):
                 print(f"\n[ERROR t={self.timestep}] Failed to update agent: {e}")
                 import traceback
                 traceback.print_exc()
+                self.current_llm_prompt = f"Error at step {self.timestep}: {str(e)[:200]}"
 
         
         obs['condition'] = {
@@ -246,8 +338,67 @@ class AlexAgentCallback(MinecraftCallback):
             "text": "chop a tree"
         }
         
+        # Store debug frame separately (don't modify obs['image'] used by model)
+        if 'image' in obs and obs['image'] is not None:
+            self.debug_frame = self._add_debug_panel_to_frame(obs['image'])
+        
         return obs, reward, terminated, truncated, info
     
+
+class DebugRecordCallback(MinecraftCallback):
+    """Custom recording callback that uses debug frames from AlexAgentCallback."""
+    
+    def __init__(self, record_path: str, fps: int = 20, alex_callback: AlexAgentCallback = None):
+        super().__init__()
+        self.record_path = record_path
+        self.fps = fps
+        self.alex_callback = alex_callback
+        self.video_writer = None
+        self.frame_count = 0
+        self.episode_num = 0
+        
+    def after_reset(self, sim, obs, info):
+        # Close previous video if exists
+        if self.video_writer is not None:
+            self.video_writer.release()
+            self.video_writer = None
+            
+        # Setup new video file
+        self.episode_num += 1
+        video_path = os.path.join(self.record_path, f"episode_{self.episode_num}_debug.mp4")
+        
+        # Get frame size from debug frame if available
+        if self.alex_callback and self.alex_callback.debug_frame is not None:
+            h, w = self.alex_callback.debug_frame.shape[:2]
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            self.video_writer = cv2.VideoWriter(video_path, fourcc, self.fps, (w, h))
+            
+            # Write first frame
+            # Convert RGB to BGR for cv2
+            frame_bgr = cv2.cvtColor(self.alex_callback.debug_frame, cv2.COLOR_RGB2BGR)
+            self.video_writer.write(frame_bgr)
+            self.frame_count = 1
+            
+            print(f"[DEBUG RECORDER] Started recording to {video_path} ({w}x{h})")
+        
+        return obs, info
+    
+    def after_step(self, sim, obs, reward, terminated, truncated, info):
+        # Write debug frame if available
+        if self.video_writer and self.alex_callback and self.alex_callback.debug_frame is not None:
+            # Convert RGB to BGR for cv2
+            frame_bgr = cv2.cvtColor(self.alex_callback.debug_frame, cv2.COLOR_RGB2BGR)
+            self.video_writer.write(frame_bgr)
+            self.frame_count += 1
+        
+        return obs, reward, terminated, truncated, info
+    
+    def after_close(self, sim):
+        if self.video_writer is not None:
+            self.video_writer.release()
+            print(f"[DEBUG RECORDER] Saved {self.frame_count} frames")
+            self.video_writer = None
+
 
 def run_agent_with_recording(
     num_episodes: int = 3,
@@ -284,22 +435,31 @@ def run_agent_with_recording(
     try:
         
         print("Setting up environment...")
+        
+        # Create AlexAgentCallback first so we can reference it
+        alex_callback = AlexAgentCallback(
+            update_interval=update_interval,
+            cond_scale=cond_scale,
+            verbose=verbose,
+            output_dir=output_dir
+        )
+        
         env_generator = partial(
             MinecraftSim,
             obs_size=(128, 128),
             preferred_spawn_biome="forest",
             callbacks=[
                 SpeedTestCallback(50),
-                AlexAgentCallback(
-                    update_interval=update_interval,
-                    cond_scale=cond_scale,
-                    verbose=verbose,
-                    output_dir=output_dir
-                ),
+                alex_callback,
                 RecordCallback(
                     record_path=output_dir,
                     fps=20,
                     frame_type="pov",
+                ),
+                DebugRecordCallback(
+                    record_path=output_dir,
+                    fps=20,
+                    alex_callback=alex_callback
                 ),
             ]
         )

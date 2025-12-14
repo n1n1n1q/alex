@@ -329,7 +329,14 @@ def run_task_benchmark(
     print("=" * 80)
 
     if not ray.is_initialized():
-        ray.init()
+        # Add the parent directory to PYTHONPATH for all Ray workers
+        parent_dir = str(Path(__file__).parent.parent)
+        ray.init(
+            runtime_env={
+                "env_vars": {"PYTHONPATH": parent_dir},
+                "py_modules": [Path(parent_dir) / "alex"],
+            }
+        )
 
     try:
         result = BenchmarkResult(model_name, task_name)

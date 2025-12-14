@@ -13,6 +13,7 @@ import time
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, Optional
+from functools import partial
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -25,7 +26,101 @@ from minestudio.inference import EpisodePipeline, MineGenerator
 
 from alex.agent import Agent
 from alex.core.extractor import extract_state
-from benchmarks.base_benchmark import BenchmarkResult, get_task_checker
+
+
+# Inline task checkers to avoid Ray serialization issues
+def get_task_checker(task_name: str):
+    """Get task checker function for the given task."""
+    def check_crafting_table(info):
+        inventory = info.get("inventory", {})
+        return inventory.get("crafting_table", 0) > 0
+    
+    def check_stone_axe(info):
+        inventory = info.get("inventory", {})
+        return inventory.get("stone_axe", 0) > 0
+    
+    def check_iron_ore(info):
+        inventory = info.get("inventory", {})
+        return inventory.get("iron_ore", 0) > 0 or inventory.get("raw_iron", 0) > 0
+    
+    checkers = {
+        "crafting_table": check_crafting_table,
+        "stone_axe": check_stone_axe,
+        "iron_ore": check_iron_ore,
+    }
+    
+    if task_name not in checkers:
+        raise ValueError(f"Unknown task: {task_name}. Available: {list(checkers.keys())}")
+    
+    return checkers[task_name]
+
+
+class BenchmarkResult:
+    """Container for benchmark results."""
+    
+    def __init__(self, model_name: str, task_name: str):
+        self.model_name = model_name
+        self.task_name = task_name
+        self.trials = []
+        self.start_time = None
+        self.end_time = None
+        
+    def add_trial(self, trial_data):
+        """Add a trial result."""
+        self.trials.append(trial_data)
+        
+    def compute_statistics(self):
+        """Compute aggregate statistics across all trials."""
+        if not self.trials:
+            return {}
+            
+        stats = {
+            "model": self.model_name,
+            "task": self.task_name,
+            "num_trials": len(self.trials),
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "duration_seconds": (self.end_time - self.start_time) if self.start_time and self.end_time else None
+        }
+        
+        successes = [t.get("success", False) for t in self.trials]
+        if successes:
+            stats["success_rate"] = sum(successes) / len(successes)
+            stats["num_successes"] = sum(successes)
+            
+        completion_times = [t.get("completion_time") for t in self.trials if t.get("completion_time") is not None]
+        if completion_times:
+            stats["avg_completion_time"] = np.mean(completion_times)
+            stats["std_completion_time"] = np.std(completion_times)
+            stats["min_completion_time"] = np.min(completion_times)
+            stats["max_completion_time"] = np.max(completion_times)
+            
+        steps = [t.get("steps") for t in self.trials if t.get("steps") is not None]
+        if steps:
+            stats["avg_steps"] = np.mean(steps)
+            stats["std_steps"] = np.std(steps)
+            stats["min_steps"] = np.min(steps)
+            stats["max_steps"] = np.max(steps)
+            
+        return stats
+        
+    def save(self, output_dir: str):
+        """Save results to JSON files."""
+        os.makedirs(output_dir, exist_ok=True)
+        
+        trials_file = os.path.join(output_dir, f"{self.model_name}_{self.task_name}_trials.json")
+        with open(trials_file, 'w') as f:
+            json.dump({
+                "model": self.model_name,
+                "task": self.task_name,
+                "trials": self.trials
+            }, f, indent=2)
+            
+        stats_file = os.path.join(output_dir, f"{self.model_name}_{self.task_name}_stats.json")
+        with open(stats_file, 'w') as f:
+            json.dump(self.compute_statistics(), f, indent=2)
+            
+        print(f"Saved results to {output_dir}")
 
 
 class TaskSuccessBenchmarkCallback(MinecraftCallback):
@@ -52,20 +147,13 @@ class TaskSuccessBenchmarkCallback(MinecraftCallback):
         self.completion_time = None
         self.progress_log = []
         
-        # Log initial state
-        self.progress_log.append({
-            "step": 0,
-            "progress": self.checker.get_progress(info),
-            "completed": False
-        })
-        
         return obs, info
         
     def after_step(self, sim, obs, reward, terminated, truncated, info):
         self.current_step += 1
         
         # Check task completion
-        if not self.task_completed and self.checker.check(info):
+        if not self.task_completed and self.checker(info):
             self.task_completed = True
             self.completion_step = self.current_step
             self.completion_time = time.time() - self.start_time
@@ -73,13 +161,7 @@ class TaskSuccessBenchmarkCallback(MinecraftCallback):
             
         # Log progress every 50 steps
         if self.current_step % 50 == 0:
-            progress = self.checker.get_progress(info)
-            self.progress_log.append({
-                "step": self.current_step,
-                "progress": progress,
-                "completed": self.task_completed
-            })
-            print(f"[BENCHMARK] Step {self.current_step}/{self.max_steps}, Progress: {progress:.2%}, Completed: {self.task_completed}")
+            print(f"[BENCHMARK] Step {self.current_step}/{self.max_steps}, Completed: {self.task_completed}")
             
         # Terminate if task completed or max steps reached
         if self.task_completed or self.current_step >= self.max_steps:
@@ -291,18 +373,23 @@ def run_task_benchmark(
                 raise ValueError(f"Unknown model: {model_name}")
                 
             # Run episode
-            worker_kwargs = {
-                "env_type": "sim",
-                "sim_name": f"{model_name}_task_bench_{trial}",
-                "policy": policy,
-                "callbacks": [callback],
-                "env_kwargs": {
-                    "obs_size": (128, 128),
-                    "preferred_spawn_biome": "forest",
-                },
-                "max_steps": max_steps + 10,  # Small buffer
-                "reset_flag": True,
-            }
+            env_generator = partial(
+                MinecraftSim,
+                obs_size=(128, 128),
+                preferred_spawn_biome="forest",
+                callbacks=[callback]
+            )
+            
+            agent_generator = lambda: policy
+            
+            worker_kwargs = dict(
+                env_generator=env_generator,
+                agent_generator=agent_generator,
+                num_max_steps=max_steps + 10,
+                num_episodes=1,
+                tmpdir="./benchmark_results",
+                image_media="h264",
+            )
             
             pipeline = EpisodePipeline(
                 episode_generator=MineGenerator(

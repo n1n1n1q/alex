@@ -11,7 +11,8 @@ import json
 import time
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
+from functools import partial, List
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -24,7 +25,76 @@ from minestudio.inference import EpisodePipeline, MineGenerator
 
 from alex.agent import Agent
 from alex.core.extractor import extract_state
-from benchmarks.base_benchmark import BenchmarkResult, DirtMiningChecker
+
+
+class BenchmarkResult:
+    """Container for benchmark results."""
+    
+    def __init__(self, model_name: str, task_name: str):
+        self.model_name = model_name
+        self.task_name = task_name
+        self.trials = []
+        self.start_time = None
+        self.end_time = None
+        
+    def add_trial(self, trial_data):
+        """Add a trial result."""
+        self.trials.append(trial_data)
+        
+    def compute_statistics(self):
+        """Compute aggregate statistics across all trials."""
+        if not self.trials:
+            return {}
+            
+        stats = {
+            "model": self.model_name,
+            "task": self.task_name,
+            "num_trials": len(self.trials),
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "duration_seconds": (self.end_time - self.start_time) if self.start_time and self.end_time else None
+        }
+        
+        successes = [t.get("success", False) for t in self.trials]
+        if successes:
+            stats["success_rate"] = sum(successes) / len(successes)
+            stats["num_successes"] = sum(successes)
+            
+        completion_times = [t.get("completion_time") for t in self.trials if t.get("completion_time") is not None]
+        if completion_times:
+            stats["avg_completion_time"] = np.mean(completion_times)
+            stats["std_completion_time"] = np.std(completion_times)
+            
+        steps = [t.get("steps") for t in self.trials if t.get("steps") is not None]
+        if steps:
+            stats["avg_steps"] = np.mean(steps)
+            stats["std_steps"] = np.std(steps)
+            
+        dirt_mined = [t.get("dirt_mined", 0) for t in self.trials]
+        if dirt_mined:
+            stats["avg_dirt_mined"] = np.mean(dirt_mined)
+            stats["std_dirt_mined"] = np.std(dirt_mined)
+            stats["total_dirt_mined"] = sum(dirt_mined)
+            
+        return stats
+        
+    def save(self, output_dir: str):
+        """Save results to JSON files."""
+        os.makedirs(output_dir, exist_ok=True)
+        
+        trials_file = os.path.join(output_dir, f"{self.model_name}_{self.task_name}_trials.json")
+        with open(trials_file, 'w') as f:
+            json.dump({
+                "model": self.model_name,
+                "task": self.task_name,
+                "trials": self.trials
+            }, f, indent=2)
+            
+        stats_file = os.path.join(output_dir, f"{self.model_name}_{self.task_name}_stats.json")
+        with open(stats_file, 'w') as f:
+            json.dump(self.compute_statistics(), f, indent=2)
+            
+        print(f"Saved results to {output_dir}")
 
 
 class DirtMiningBenchmarkCallback(MinecraftCallback):
@@ -279,18 +349,23 @@ def run_dirt_mining_benchmark(
                 raise ValueError(f"Unknown model: {model_name}")
                 
             # Run episode
-            worker_kwargs = {
-                "env_type": "sim",
-                "sim_name": f"{model_name}_dirt_mining_{trial}",
-                "policy": policy,
-                "callbacks": [callback],
-                "env_kwargs": {
-                    "obs_size": (128, 128),
-                    "preferred_spawn_biome": "plains",  # More dirt available
-                },
-                "max_steps": max_steps + 10,  # Small buffer
-                "reset_flag": True,
-            }
+            env_generator = partial(
+                MinecraftSim,
+                obs_size=(128, 128),
+                preferred_spawn_biome="plains",  # More dirt available
+                callbacks=[callback]
+            )
+            
+            agent_generator = lambda: policy
+            
+            worker_kwargs = dict(
+                env_generator=env_generator,
+                agent_generator=agent_generator,
+                num_max_steps=max_steps + 10,
+                num_episodes=1,
+                tmpdir="./benchmark_results",
+                image_media="h264",
+            )
             
             pipeline = EpisodePipeline(
                 episode_generator=MineGenerator(

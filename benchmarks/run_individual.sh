@@ -8,18 +8,9 @@ set -e  # Exit on error
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"  # Change to benchmarks directory
 
-# Configuration - modify these to match your setup
-VPT_MODEL="${VPT_MODEL:-CraftJarvis/MineStudio_VPT.bc_early_game_3x}"
-VPT_WEIGHTS="${VPT_WEIGHTS:-}"  # Leave empty for HuggingFace models
-STEVE_MODEL="${STEVE_MODEL:-CraftJarvis/MineStudio_STEVE-1.official}"
-OUTPUT_DIR="${OUTPUT_DIR:-./benchmark_results}"
-DEVICE="${DEVICE:-cuda}"
-
-# Benchmark parameters
-TASK_TRIALS="${TASK_TRIALS:-10}"
-TASK_MAX_STEPS="${TASK_MAX_STEPS:-6000}"
-DIRT_TRIALS="${DIRT_TRIALS:-5}"
-DIRT_MAX_STEPS="${DIRT_MAX_STEPS:-3000}"
+# Default configuration file
+DEFAULT_CONFIG="benchmark_config.yaml"
+CONFIG_FILE=""
 
 # Colors
 RED='\033[0;31m'
@@ -27,47 +18,6 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
-
-# Task list
-TASKS=("crafting_table" "stone_axe" "iron_ore")
-MODELS=("vpt" "steve" "alex")
-
-echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}Individual Benchmark Runner${NC}"
-echo -e "${BLUE}========================================${NC}"
-echo ""
-echo "Configuration:"
-echo "  VPT Model:     $VPT_MODEL"
-echo "  STEVE Model:   $STEVE_MODEL"
-echo "  Output Dir:    $OUTPUT_DIR"
-echo "  Device:        $DEVICE"
-echo ""
-echo "Benchmark Parameters:"
-echo "  Task Trials:   $TASK_TRIALS"
-echo "  Task Steps:    $TASK_MAX_STEPS"
-echo "  Dirt Trials:   $DIRT_TRIALS"
-echo "  Dirt Steps:    $DIRT_MAX_STEPS"
-echo ""
-
-# Create output directory
-mkdir -p "$OUTPUT_DIR"
-
-# Function to build model arguments
-get_model_args() {
-    local model=$1
-    local args=""
-    
-    if [ "$model" = "vpt" ]; then
-        args="--model-path $VPT_MODEL"
-        if [ -n "$VPT_WEIGHTS" ]; then
-            args="$args --weights-path $VPT_WEIGHTS"
-        fi
-    else
-        args="--model-path $STEVE_MODEL"
-    fi
-    
-    echo "$args"
-}
 
 # Function to run a task success benchmark
 run_task_benchmark() {
@@ -78,16 +28,10 @@ run_task_benchmark() {
     echo -e "${GREEN}Running: $model - $task${NC}"
     echo -e "${GREEN}========================================${NC}"
     
-    local model_args=$(get_model_args $model)
-    
     python task_success_benchmark.py \
         --model "$model" \
         --task "$task" \
-        $model_args \
-        --trials "$TASK_TRIALS" \
-        --max-steps "$TASK_MAX_STEPS" \
-        --output-dir "$OUTPUT_DIR" \
-        --device "$DEVICE"
+        --config "$CONFIG_FILE"
     
     local exit_code=$?
     if [ $exit_code -eq 0 ]; then
@@ -107,15 +51,9 @@ run_dirt_benchmark() {
     echo -e "${GREEN}Running: $model - dirt mining${NC}"
     echo -e "${GREEN}========================================${NC}"
     
-    local model_args=$(get_model_args $model)
-    
     python dirt_mining_benchmark.py \
         --model "$model" \
-        $model_args \
-        --trials "$DIRT_TRIALS" \
-        --max-steps "$DIRT_MAX_STEPS" \
-        --output-dir "$OUTPUT_DIR" \
-        --device "$DEVICE"
+        --config "$CONFIG_FILE"
     
     local exit_code=$?
     if [ $exit_code -eq 0 ]; then
@@ -135,6 +73,10 @@ CONTINUE_ON_ERROR=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --config)
+            CONFIG_FILE="$2"
+            shift 2
+            ;;
         --models)
             shift
             SELECTED_MODELS=()
@@ -167,6 +109,7 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
+            echo "  --config FILE               Path to config YAML file (default: benchmark_config.yaml)"
             echo "  --models MODEL1 MODEL2 ...  Run only specified models (vpt, steve, alex)"
             echo "  --tasks TASK1 TASK2 ...     Run only specified tasks (crafting_table, stone_axe, iron_ore)"
             echo "  --no-dirt                   Skip dirt mining benchmarks"
@@ -174,20 +117,12 @@ while [[ $# -gt 0 ]]; do
             echo "  --continue-on-error         Continue even if a benchmark fails"
             echo "  --help, -h                  Show this help message"
             echo ""
-            echo "Environment Variables:"
-            echo "  VPT_MODEL          VPT model path/ID (default: CraftJarvis/MineStudio_VPT.bc_early_game_3x)"
-            echo "  VPT_WEIGHTS        VPT weights path (optional, for local files)"
-            echo "  STEVE_MODEL        STEVE model path/ID (default: CraftJarvis/MineStudio_STEVE-1.official)"
-            echo "  OUTPUT_DIR         Output directory (default: ./benchmark_results)"
-            echo "  DEVICE             Device to use (default: cuda)"
-            echo "  TASK_TRIALS        Trials per task (default: 10)"
-            echo "  TASK_MAX_STEPS     Max steps per task (default: 6000)"
-            echo "  DIRT_TRIALS        Dirt mining trials (default: 5)"
-            echo "  DIRT_MAX_STEPS     Max steps for dirt mining (default: 3000)"
-            echo ""
             echo "Examples:"
             echo "  # Run only ALEX on crafting table"
             echo "  $0 --models alex --tasks crafting_table"
+            echo ""
+            echo "  # Run with custom config"
+            echo "  $0 --config my_config.yaml --models steve alex"
             echo ""
             echo "  # Run only dirt mining for all models"
             echo "  $0 --only-dirt"
@@ -204,6 +139,48 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Use default config if not specified
+if [ -z "$CONFIG_FILE" ]; then
+    CONFIG_FILE="$DEFAULT_CONFIG"
+fi
+
+# Check if config file exists
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo -e "${RED}Error: Configuration file '$CONFIG_FILE' not found${NC}"
+    exit 1
+fi
+
+# Load configuration using Python
+CONFIG_INFO=$(python3 -c "
+from benchmark_config import BenchmarkConfig
+import yaml
+config = BenchmarkConfig('$CONFIG_FILE')
+print(f\"{config.get_output_dir()}\")
+print(f\"{config.get_device()}\")
+")
+
+# Parse config info
+OUTPUT_DIR=$(echo "$CONFIG_INFO" | sed -n '1p')
+DEVICE=$(echo "$CONFIG_INFO" | sed -n '2p')
+
+# Task list (will be filtered by command-line args)
+TASKS=("crafting_table" "stone_axe" "iron_ore")
+MODELS=("vpt" "steve" "alex")
+
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}Individual Benchmark Runner${NC}"
+echo -e "${BLUE}========================================${NC}"
+echo ""
+echo "Configuration File: $CONFIG_FILE"
+echo "Output Directory:   $OUTPUT_DIR"
+echo "Device:             $DEVICE"
+echo ""
+echo "Note: Task-specific trials and max_steps are defined in $CONFIG_FILE"
+echo ""
+
+# Create output directory
+mkdir -p "$OUTPUT_DIR"
 
 echo -e "${BLUE}Will run benchmarks for:${NC}"
 echo "  Models: ${SELECTED_MODELS[@]}"

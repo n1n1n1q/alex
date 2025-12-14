@@ -24,8 +24,9 @@ from minestudio.simulator.callbacks import MinecraftCallback
 from minestudio.models import VPTPolicy, load_vpt_policy, SteveOnePolicy, load_steve_one_policy
 from minestudio.inference import EpisodePipeline, MineGenerator
 
-from alex.agent import Agent
+from alex.agent import Agent, VerboseAgent
 from alex.core.extractor import extract_state
+from benchmark_config import BenchmarkConfig
 
 
 # Inline task checkers to avoid Ray serialization issues
@@ -242,7 +243,7 @@ class ALEXBenchmarkCallback(TaskSuccessBenchmarkCallback):
     
     def __init__(self, task_name: str, max_steps: int = 6000, update_interval: int = 100):
         super().__init__(task_name, max_steps)
-        self.agent = Agent()
+        self.agent = VerboseAgent()
         self.update_interval = update_interval
         self.current_command = "explore around"
         
@@ -447,23 +448,41 @@ if __name__ == "__main__":
     parser.add_argument("--task", type=str, required=True, 
                         choices=["crafting_table", "stone_axe", "iron_ore"],
                         help="Task to benchmark")
-    parser.add_argument("--trials", type=int, default=10, help="Number of trials")
-    parser.add_argument("--max-steps", type=int, default=6000, help="Max steps per trial")
-    parser.add_argument("--model-path", type=str, help="Path to model file")
-    parser.add_argument("--weights-path", type=str, help="Path to weights file (VPT only)")
-    parser.add_argument("--output-dir", type=str, default="./benchmark_results",
-                        help="Output directory")
-    parser.add_argument("--device", type=str, default="cuda", help="Device (cuda/cpu)")
+    parser.add_argument("--config", type=str, default=None,
+                        help="Path to config file (default: benchmark_config.yaml)")
+    parser.add_argument("--trials", type=int, default=None, 
+                        help="Number of trials (overrides config)")
+    parser.add_argument("--max-steps", type=int, default=None, 
+                        help="Max steps per trial (overrides config)")
+    parser.add_argument("--model-path", type=str, default=None, 
+                        help="Path to model file (overrides config)")
+    parser.add_argument("--weights-path", type=str, default=None, 
+                        help="Path to weights file (VPT only, overrides config)")
+    parser.add_argument("--output-dir", type=str, default=None,
+                        help="Output directory (overrides config)")
+    parser.add_argument("--device", type=str, default=None, 
+                        help="Device (cuda/cpu, overrides config)")
     
     args = parser.parse_args()
+    
+    # Load configuration
+    config = BenchmarkConfig(args.config)
+    
+    # Use command-line args if provided, otherwise use config
+    model_path = args.model_path if args.model_path else config.get_model_path(args.model)
+    weights_path = args.weights_path if args.weights_path else config.get_model_weights(args.model)
+    output_dir = args.output_dir if args.output_dir else config.get_output_dir()
+    device = args.device if args.device else config.get_device()
+    trials = args.trials if args.trials else config.get_task_trials(args.task, args.model)
+    max_steps = args.max_steps if args.max_steps else config.get_task_max_steps(args.task, args.model)
     
     run_task_benchmark(
         model_name=args.model,
         task_name=args.task,
-        num_trials=args.trials,
-        max_steps=args.max_steps,
-        output_dir=args.output_dir,
-        model_path=args.model_path,
-        weights_path=args.weights_path,
-        device=args.device
+        num_trials=trials,
+        max_steps=max_steps,
+        output_dir=output_dir,
+        model_path=model_path,
+        weights_path=weights_path,
+        device=device
     )

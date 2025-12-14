@@ -1,0 +1,56 @@
+# Benchmark Configuration File
+# This file defines the parameters for each benchmark experiment
+
+# Model paths
+models:
+  vpt:
+    path: "CraftJarvis/MineStudio_VPT.bc_early_game_3x"
+    weights: ""  # Optional: path to weights file for local models
+  steve:
+    path: "CraftJarvis/MineStudio_STEVE-1.official"
+  alex:
+    path: "CraftJarvis/MineStudio_STEVE-1.official"  # ALEX uses STEVE policy
+
+# General settings
+general:
+  output_dir: "./benchmark_results"
+  device: "cuda"  # or "cpu"
+
+# Task-specific benchmark configurations
+# Each task can have its own number of trials and max steps
+tasks:
+  crafting_table:
+    trials: 10
+    max_steps: 6000
+    description: "Craft a crafting table from scratch"
+  
+  stone_axe:
+    trials: 10
+    max_steps: 8000
+    description: "Craft a stone axe (requires wood, crafting table, and cobblestone)"
+  
+  iron_ore:
+    trials: 10
+    max_steps: 12000
+    description: "Find and mine iron ore"
+
+# Dirt mining benchmark
+dirt_mining:
+  trials: 5
+  max_steps: 3000
+  description: "Mine dirt blocks to measure basic mining efficiency"
+
+# Model-specific overrides (optional)
+# Uncomment to override settings for specific model-task combinations
+overrides:
+  # Example: Give VPT more steps for harder tasks
+  # vpt:
+  #   stone_axe:
+  #     max_steps: 10000
+  #   iron_ore:
+  #     max_steps: 15000
+  
+  # Example: Run fewer trials for ALEX during testing
+  # alex:
+  #   crafting_table:
+  #     trials: 5

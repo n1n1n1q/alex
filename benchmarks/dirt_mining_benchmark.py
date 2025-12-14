@@ -1,0 +1,378 @@
+"""
+Dirt Mining Benchmark
+
+Measures how much dirt agents can mine over time.
+Each agent runs multiple trials and we track the best result.
+"""
+
+import os
+import sys
+import json
+import time
+from pathlib import Path
+from datetime import datetime
+from typing import Dict, Any, Optional, List
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+import ray
+import numpy as np
+from minestudio.simulator import MinecraftSim
+from minestudio.simulator.callbacks import MinecraftCallback
+from minestudio.models import VPTPolicy, load_vpt_policy, SteveOnePolicy, load_steve_one_policy
+from minestudio.inference import EpisodePipeline, MineGenerator
+
+from alex.agent import Agent
+from alex.core.extractor import extract_state
+from benchmarks.base_benchmark import BenchmarkResult, DirtMiningChecker
+
+
+class DirtMiningBenchmarkCallback(MinecraftCallback):
+    """Callback for dirt mining benchmark."""
+    
+    def __init__(self, max_steps: int = 3000, sample_interval: int = 20):
+        super().__init__()
+        self.max_steps = max_steps
+        self.sample_interval = sample_interval
+        self.checker = DirtMiningChecker()
+        
+        self.current_step = 0
+        self.start_time = None
+        self.dirt_log = []  # List of (step, timestamp, dirt_count)
+        
+    def after_reset(self, sim, obs, info):
+        self.current_step = 0
+        self.start_time = time.time()
+        self.dirt_log = []
+        
+        # Log initial dirt count
+        dirt_count = self.checker.get_dirt_count(info)
+        self.dirt_log.append({
+            "step": 0,
+            "timestamp": 0.0,
+            "dirt_count": dirt_count
+        })
+        
+        print(f"[BENCHMARK] Starting dirt mining benchmark")
+        return obs, info
+        
+    def after_step(self, sim, obs, reward, terminated, truncated, info):
+        self.current_step += 1
+        
+        # Sample dirt count periodically
+        if self.current_step % self.sample_interval == 0:
+            elapsed_time = time.time() - self.start_time
+            dirt_count = self.checker.get_dirt_count(info)
+            
+            self.dirt_log.append({
+                "step": self.current_step,
+                "timestamp": elapsed_time,
+                "dirt_count": dirt_count
+            })
+            
+            # Calculate current mining rate
+            if len(self.dirt_log) >= 2:
+                dirt_counts = [log["dirt_count"] for log in self.dirt_log]
+                timestamps = [log["timestamp"] for log in self.dirt_log]
+                rate = self.checker.get_mining_rate(dirt_counts, timestamps)
+                print(f"[BENCHMARK] Step {self.current_step}/{self.max_steps}, "
+                      f"Dirt: {dirt_count}, Rate: {rate:.2f} dirt/sec")
+            else:
+                print(f"[BENCHMARK] Step {self.current_step}/{self.max_steps}, Dirt: {dirt_count}")
+            
+        # Terminate if max steps reached
+        if self.current_step >= self.max_steps:
+            terminated = True
+            
+        return obs, reward, terminated, truncated, info
+        
+    def get_trial_result(self) -> Dict[str, Any]:
+        """Get results for this trial."""
+        dirt_counts = [log["dirt_count"] for log in self.dirt_log]
+        timestamps = [log["timestamp"] for log in self.dirt_log]
+        
+        final_dirt = dirt_counts[-1] if dirt_counts else 0
+        avg_rate = self.checker.get_mining_rate(dirt_counts, timestamps)
+        
+        return {
+            "steps": self.current_step,
+            "final_dirt_count": final_dirt,
+            "avg_mining_rate": avg_rate,
+            "dirt_log": self.dirt_log,
+            "peak_dirt": max(dirt_counts) if dirt_counts else 0
+        }
+
+
+class VPTDirtMiningCallback(DirtMiningBenchmarkCallback):
+    """Callback for VPT dirt mining benchmark."""
+    pass
+
+
+class STEVEDirtMiningCallback(DirtMiningBenchmarkCallback):
+    """Callback for STEVE-1 dirt mining benchmark."""
+    
+    def __init__(self, policy, max_steps: int = 3000, sample_interval: int = 20):
+        super().__init__(max_steps, sample_interval)
+        self.policy = policy
+        self.command = "mine dirt blocks and collect as much dirt as possible"
+        
+    def after_reset(self, sim, obs, info):
+        obs, info = super().after_reset(sim, obs, info)
+        
+        # Set STEVE-1 text condition
+        if 'condition' not in obs:
+            obs['condition'] = {}
+        obs['condition']['text'] = self.command
+        obs['condition']['cond_scale'] = 6.0
+        
+        print(f"[STEVE-1] Command: '{self.command}'")
+        return obs, info
+        
+    def after_step(self, sim, obs, reward, terminated, truncated, info):
+        obs, reward, terminated, truncated, info = super().after_step(
+            sim, obs, reward, terminated, truncated, info
+        )
+        
+        # Ensure condition stays set
+        if 'condition' not in obs:
+            obs['condition'] = {}
+        obs['condition']['text'] = self.command
+        obs['condition']['cond_scale'] = 6.0
+        
+        return obs, reward, terminated, truncated, info
+
+
+class ALEXDirtMiningCallback(DirtMiningBenchmarkCallback):
+    """Callback for ALEX agent dirt mining benchmark."""
+    
+    def __init__(self, max_steps: int = 3000, sample_interval: int = 20, update_interval: int = 100):
+        super().__init__(max_steps, sample_interval)
+        self.agent = Agent()
+        self.update_interval = update_interval
+        self.current_command = "explore around"
+        
+    def after_reset(self, sim, obs, info):
+        obs, info = super().after_reset(sim, obs, info)
+        
+        # Get initial command from ALEX agent
+        try:
+            state = extract_state(info)
+            action = self.agent.step(obs, state)
+            
+            if hasattr(action, 'steve_prompt') and action.steve_prompt:
+                self.current_command = action.steve_prompt
+            elif hasattr(action, 'info') and action.info and 'steve_prompt' in action.info:
+                self.current_command = action.info['steve_prompt']
+                
+            print(f"[ALEX] Initial command: '{self.current_command}'")
+        except Exception as e:
+            print(f"[ALEX] Error getting initial command: {e}")
+            # Fallback: set a dirt mining prompt
+            self.current_command = "mine dirt"
+            
+        # Set condition for STEVE-1
+        if 'condition' not in obs:
+            obs['condition'] = {}
+        obs['condition']['text'] = self.current_command
+        obs['condition']['cond_scale'] = 6.0
+        
+        return obs, info
+        
+    def after_step(self, sim, obs, reward, terminated, truncated, info):
+        # Update command periodically using ALEX agent
+        if self.current_step % self.update_interval == 0 and self.current_step > 0:
+            try:
+                state = extract_state(info)
+                action = self.agent.step(obs, state)
+                
+                if hasattr(action, 'steve_prompt') and action.steve_prompt:
+                    self.current_command = action.steve_prompt
+                elif hasattr(action, 'info') and action.info and 'steve_prompt' in action.info:
+                    self.current_command = action.info['steve_prompt']
+                    
+                print(f"[ALEX] Updated command: '{self.current_command}'")
+            except Exception as e:
+                print(f"[ALEX] Error updating command: {e}")
+                
+        obs, reward, terminated, truncated, info = super().after_step(
+            sim, obs, reward, terminated, truncated, info
+        )
+        
+        # Set condition for STEVE-1
+        if 'condition' not in obs:
+            obs['condition'] = {}
+        obs['condition']['text'] = self.current_command
+        obs['condition']['cond_scale'] = 6.0
+        
+        return obs, reward, terminated, truncated, info
+
+
+def run_dirt_mining_benchmark(
+    model_name: str,
+    num_trials: int = 5,
+    max_steps: int = 3000,
+    output_dir: str = "./benchmark_results",
+    model_path: Optional[str] = None,
+    weights_path: Optional[str] = None,
+    device: str = "cuda"
+):
+    """
+    Run dirt mining benchmark for a model.
+    
+    Args:
+        model_name: One of 'vpt', 'steve', 'alex'
+        num_trials: Number of trials to run
+        max_steps: Maximum steps per trial
+        output_dir: Directory to save results
+        model_path: Path to model file (for VPT/STEVE)
+        weights_path: Path to weights file (for VPT/STEVE)
+        device: Device to run on
+    """
+    
+    print("="*80)
+    print(f"DIRT MINING BENCHMARK")
+    print(f"Model: {model_name.upper()}")
+    print(f"Trials: {num_trials}")
+    print(f"Max Steps: {max_steps}")
+    print("="*80)
+    
+    # Initialize Ray
+    if not ray.is_initialized():
+        ray.init()
+        
+    try:
+        result = BenchmarkResult(model_name, "dirt_mining")
+        result.start_time = time.time()
+        
+        best_trial = None
+        best_dirt_count = 0
+        
+        for trial in range(num_trials):
+            print(f"\n{'='*80}")
+            print(f"TRIAL {trial + 1}/{num_trials}")
+            print(f"{'='*80}\n")
+            
+            # Create callback
+            if model_name.lower() == "vpt":
+                callback = VPTDirtMiningCallback(max_steps)
+                # Use from_pretrained for HuggingFace models, load_vpt_policy for local files
+                if model_path and (model_path.startswith("CraftJarvis/") or "/" in model_path and not os.path.exists(model_path)):
+                    # HuggingFace model ID
+                    policy = VPTPolicy.from_pretrained(model_path).to(device)
+                else:
+                    # Local file path
+                    policy = load_vpt_policy(
+                        model_path=model_path,
+                        weights_path=weights_path
+                    ).to(device)
+            elif model_name.lower() == "steve":
+                policy = load_steve_one_policy(
+                    ckpt_path=model_path
+                ).to(device)
+                callback = STEVEDirtMiningCallback(policy, max_steps)
+            elif model_name.lower() == "alex":
+                policy = load_steve_one_policy(
+                    ckpt_path=model_path
+                ).to(device)
+                callback = ALEXDirtMiningCallback(max_steps)
+            else:
+                raise ValueError(f"Unknown model: {model_name}")
+                
+            # Run episode
+            worker_kwargs = {
+                "env_type": "sim",
+                "sim_name": f"{model_name}_dirt_mining_{trial}",
+                "policy": policy,
+                "callbacks": [callback],
+                "env_kwargs": {
+                    "obs_size": (128, 128),
+                    "preferred_spawn_biome": "plains",  # More dirt available
+                },
+                "max_steps": max_steps + 10,  # Small buffer
+                "reset_flag": True,
+            }
+            
+            pipeline = EpisodePipeline(
+                episode_generator=MineGenerator(
+                    num_workers=1,
+                    num_gpus=0.25 if device == "cuda" else 0,
+                    max_restarts=3,
+                    **worker_kwargs,
+                ),
+            )
+            
+            pipeline.run()
+            
+            # Get trial results
+            trial_result = callback.get_trial_result()
+            trial_result["trial_id"] = trial
+            result.add_trial(trial_result)
+            
+            dirt_count = trial_result["final_dirt_count"]
+            print(f"\nTrial {trial + 1} complete:")
+            print(f"  Final Dirt Count: {dirt_count}")
+            print(f"  Avg Mining Rate: {trial_result['avg_mining_rate']:.2f} dirt/sec")
+            
+            # Track best trial
+            if dirt_count > best_dirt_count:
+                best_dirt_count = dirt_count
+                best_trial = trial_result
+                
+        result.end_time = time.time()
+        
+        # Save results
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        save_dir = os.path.join(output_dir, "dirt_mining", timestamp)
+        result.save(save_dir)
+        
+        # Save best trial separately
+        if best_trial:
+            best_file = os.path.join(save_dir, f"{model_name}_dirt_mining_best.json")
+            with open(best_file, 'w') as f:
+                json.dump(best_trial, f, indent=2)
+        
+        # Print summary
+        stats = result.compute_statistics()
+        dirt_counts = [t["final_dirt_count"] for t in result.trials]
+        mining_rates = [t["avg_mining_rate"] for t in result.trials]
+        
+        print(f"\n{'='*80}")
+        print(f"BENCHMARK COMPLETE - {model_name.upper()} - Dirt Mining")
+        print(f"{'='*80}")
+        print(f"Best Dirt Count: {best_dirt_count}")
+        print(f"Avg Dirt Count: {np.mean(dirt_counts):.1f} ± {np.std(dirt_counts):.1f}")
+        print(f"Avg Mining Rate: {np.mean(mining_rates):.2f} ± {np.std(mining_rates):.2f} dirt/sec")
+        print(f"Results saved to: {save_dir}")
+        print(f"{'='*80}\n")
+        
+        return result
+        
+    finally:
+        ray.shutdown()
+
+
+if __name__ == "__main__":
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Run dirt mining benchmark")
+    parser.add_argument("--model", type=str, required=True, choices=["vpt", "steve", "alex"],
+                        help="Model to benchmark")
+    parser.add_argument("--trials", type=int, default=5, help="Number of trials")
+    parser.add_argument("--max-steps", type=int, default=3000, help="Max steps per trial")
+    parser.add_argument("--model-path", type=str, help="Path to model file")
+    parser.add_argument("--weights-path", type=str, help="Path to weights file (VPT only)")
+    parser.add_argument("--output-dir", type=str, default="./benchmark_results",
+                        help="Output directory")
+    parser.add_argument("--device", type=str, default="cuda", help="Device (cuda/cpu)")
+    
+    args = parser.parse_args()
+    
+    run_dirt_mining_benchmark(
+        model_name=args.model,
+        num_trials=args.trials,
+        max_steps=args.max_steps,
+        output_dir=args.output_dir,
+        model_path=args.model_path,
+        weights_path=args.weights_path,
+        device=args.device
+    )

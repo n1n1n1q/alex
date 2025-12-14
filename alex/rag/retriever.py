@@ -13,6 +13,8 @@ class WikiRetriever:
                 os.path.dirname(os.path.abspath(__file__))
             )
         )
+
+        repo_root = "/datasets/maksymz/alex/alex/rag"
         # Using full=False downloads 'wiki_samples' (smaller) for testing. 
         # Set full=True for the complete wiki.
         self.dataset = WikiDataset(

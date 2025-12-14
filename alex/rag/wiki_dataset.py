@@ -39,6 +39,7 @@ class WikiDataset:
         download_dir: None | str = None,
         full: bool = True,
     ):
+
         if download_dir is None:
             download_dir = os.path.join(os.path.expanduser("~"), ".minedojo")
 

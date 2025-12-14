@@ -144,13 +144,10 @@ FEW_SHOT_EXAMPLES = [
         "plan": {
             "reasoning": "Daytime on grass/dirt with stone nearby. I have diamonds but no wood or crafting table. I must get wood first to unlock crafting, then create a pickaxe to mine stone and upgrading my gear.",
             "subgoals": [
-                {"name": "mine log", "params": {}, "priority": 12},
-                {"name": "craft planks", "params": {}, "priority": 11},
-                {"name": "craft crafting_table", "params": {}, "priority": 10},
-                {"name": "craft sticks", "params": {}, "priority": 9},
-                {"name": "craft diamond_pickaxe", "params": {}, "priority": 8},
-                {"name": "mine stone", "params": {}, "priority": 7},
-                {"name": "craft furnace", "params": {}, "priority": 5},
+                {"name": "collect wood", "params": {}, "priority": 12},
+                {"name": "make planks", "params": {}, "priority": 11},
+                {"name": "make crafting table", "params": {}, "priority": 10},
+                {"name": "make sticks", "params": {}, "priority": 9},
             ],
             "immediate_action": "mine log",
             "context_notes": [
@@ -260,10 +257,7 @@ FEW_SHOT_EXAMPLES = [
         "plan": {
             "reasoning": "Dusk with a zombie nearby. I have torches and planks. I should light up the area to prevent spawns and place planks to block the zombie or create shelter.",
             "subgoals": [
-                {"name": "place torch", "params": {}, "priority": 12},
-                {"name": "place oak_planks", "params": {}, "priority": 11},
-                {"name": "eat bread", "params": {}, "priority": 10},
-                {"name": "craft bed", "params": {}, "priority": 8},
+                {"name": "collect wood", "params": {}, "priority": 12},
             ],
             "immediate_action": "place torch",
             "context_notes": [

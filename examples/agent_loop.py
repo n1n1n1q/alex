@@ -16,6 +16,7 @@ from minestudio.simulator.callbacks import (
     MinecraftCallback,
     SpeedTestCallback,
     RecordCallback,
+    CommandsCallback
 )
 from minestudio.models import SteveOnePolicy
 from minestudio.inference import EpisodePipeline, MineGenerator
@@ -281,7 +282,7 @@ class AlexAgentCallback(MinecraftCallback):
         if "condition" not in obs:
             obs["condition"] = {}
 
-        obs["condition"] = {"cond_scale": self.cond_scale, "text": "chop a tree"}
+        obs["condition"] = {"cond_scale": self.cond_scale, "text": "mine logs"}
 
         if info is not None:
             self.debug_frame = self._add_debug_panel_to_frame(info["pov"])
@@ -407,6 +408,57 @@ class AlexAgentCallback(MinecraftCallback):
         return obs, reward, terminated, truncated, info
 
 
+class DummyAlexAgentCallback(AlexAgentCallback):
+
+    def __init__(
+        self,
+        update_interval: int = 50,
+        cond_scale: float = 5.0,
+        verbose: bool = True,
+        output_dir: str = None,
+        debug_panel_width: int = 512,
+    ):
+
+        super().__init__(update_interval, cond_scale, verbose, output_dir, debug_panel_width)
+        
+        self.tasks = [
+            "collect wood",
+            "make wooden planks",
+            "make crafting table"
+        ]
+
+
+    def after_reset(self, sim, obs, info):
+
+        self.timestep = 0
+
+        self.current_steve_prompt = self.current_command = self.tasks[0]
+        obs["condition"] = {"cond_scale": self.cond_scale, "text": self.tasks[0]}
+
+        if info is not None:
+            self.debug_frame = self._add_debug_panel_to_frame(info["pov"])
+
+        return obs, info
+
+
+    def after_step(self, sim, obs, reward, terminated, truncated, info):
+
+        self.timestep += 1
+
+        if self.timestep % self.update_interval == 0:
+            
+            self.current_command = self.tasks.pop(0) if self.tasks else self.current_command
+            print(self.current_command)
+            self.current_steve_prompt = self.current_command
+
+        obs["condition"] = {"cond_scale": self.cond_scale, "text": self.current_command}
+
+        if info is not None:
+            self.debug_frame = self._add_debug_panel_to_frame(info["pov"])
+
+        return obs, reward, terminated, truncated, info
+
+
 
 class DebugRecordCallback(MinecraftCallback):
     """Custom recording callback that uses debug frames from AlexAgentCallback."""
@@ -510,7 +562,8 @@ def run_agent_with_recording(
         env_generator = partial(
             MinecraftSim,
             obs_size=(128, 128),
-            preferred_spawn_biome="forest",
+            preferred_spawn_biome="plains",
+            seed=1231212312,
             callbacks=[
                 SpeedTestCallback(50),
                 alex_callback,

@@ -7,8 +7,10 @@ from .few_shot_prompts import FEW_SHOT_EXAMPLES
 try:
     from alex.rag.retriever import WikiRetriever
     # Initialize once globally to avoid reloading/indexing on every request
-    retriever = WikiRetriever() 
+    retriever = None 
 except Exception as e:
+    import traceback
+    traceback.print_exc()
     print("[MCP LOG] Initializing RAG failed:", file=sys.stderr)
     retriever = None
 
@@ -36,27 +38,28 @@ Output Format:
 1. Actions must be **2-3 words** maximum.
 2. Structure: **VERB + OBJECT** (e.g., "mine log", "kill cow", "craft table").
 3. Use Minecraft IDs for objects (log, dirt, stone, iron_ore).
-4. Do NOT use abstract skills like "collect_wood" or "hunt_food".
-5. Do NOT suggest skill that can't be done imediately 
+4. Do NOT suggest skill that can't be done imediately 
 
 Examples of valid actions:
-- "mine log" (NOT collect wood)
-- "mine stone"
-- "kill cow" (NOT hunt food)
+- "collect wood"
+- "collect stone"
+- "kill cow" 
 - "kill zombie"
-- "craft planks"
-- "craft sticks"
+- "make planks"
+- "make sticks"
 - "place dirt"
 - "look around"
 
 **PROGRESSION RULES**
 Follow precisely this plan: 
 
-"1. Collect wood (logs)",
-"2. Craft planks from logs",
-"3. Craft crafting table",
-"4. Craft wooden pickaxe",
+"1. Collect wood",
+"2. make planks",
+"3. make crafting table",
+"4. make wooden pickaxe",
 
+Do not make a lot of look arounds, focus on resource gathering.
+Do not make unnecessary items like buttons, focus on tools
 Do not make tasks from next levels if previous wasn't done
 
 
@@ -157,12 +160,9 @@ def get_planning_guidelines() -> dict:
     return {
         "subgoals": {
             "gathering": [
-                "gather wood",
-                "mine dirt",
-                "mine stone",
-                "mine iron ore",
-                "mine coal ore",
-                "mine diamond ore"
+                "collect wood",
+                "collect dirt",
+                "collect stone",
             ],
             "combat": [
                 "kill cow",
@@ -174,12 +174,11 @@ def get_planning_guidelines() -> dict:
                 "kill creeper",
             ],
             "crafting": [
-                "craft planks",
-                "craft sticks",
-                "craft crafting table",
-                "craft stone pickaxe",
-                "craft furnace",
-                "craft torch",
+                "make planks",
+                "make sticks",
+                "make crafting table",
+                "make stone pickaxe",
+                "make furnace",
             ],
             "survival": ["place dirt", "place cobblestone", "eat food", "look around"],
         },

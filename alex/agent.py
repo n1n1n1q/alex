@@ -128,7 +128,6 @@ class VerboseAgent(Agent):
         print(f"  [Reflex] Checking for urgent situations...")
         print(f"  [Reflex] No urgent situations detected")
 
-        print(f"  [Planner] Ensuring resources are loaded...")
         self.planner._ensure_resources()
         print(f"  [Planner] Analyzing state and generating subgoals...")
 

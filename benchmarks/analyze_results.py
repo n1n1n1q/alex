@@ -62,7 +62,6 @@ def plot_task_success_comparison(results: Dict[str, Any], output_dir: str):
                      color=colors.get(model, '#95E1D3'),
                      alpha=0.8)
         
-        # Add value labels on bars
         for bar, rate in zip(bars, success_rates):
             height = bar.get_height()
             if height > 0:
@@ -86,10 +85,7 @@ def plot_task_success_comparison(results: Dict[str, Any], output_dir: str):
     
     print(f"Saved task success comparison to: {output_file}")
 
-
 def plot_completion_time_comparison(results: Dict[str, Any], output_dir: str):
-    """Create bar chart comparing average completion times for successful trials."""
-    
     tasks = ["crafting_table", "stone_axe", "iron_ore"]
     task_names = {
         "crafting_table": "Crafting Table",
@@ -127,7 +123,6 @@ def plot_completion_time_comparison(results: Dict[str, Any], output_dir: str):
                      alpha=0.8,
                      capsize=5)
         
-        # Add value labels on bars
         for bar, avg in zip(bars, avg_times):
             height = bar.get_height()
             if height > 0:
@@ -151,10 +146,7 @@ def plot_completion_time_comparison(results: Dict[str, Any], output_dir: str):
     
     print(f"Saved completion time comparison to: {output_file}")
 
-
 def plot_dirt_mining_comparison(results: Dict[str, Any], output_dir: str):
-    """Create bar chart comparing dirt mining performance."""
-    
     models = results['models']
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
@@ -165,7 +157,6 @@ def plot_dirt_mining_comparison(results: Dict[str, Any], output_dir: str):
         'alex': '#45B7D1'
     }
     
-    # Best dirt count
     best_counts = []
     avg_counts = []
     std_counts = []
@@ -183,7 +174,6 @@ def plot_dirt_mining_comparison(results: Dict[str, Any], output_dir: str):
     x = np.arange(len(models))
     width = 0.35
     
-    # Dirt count plot
     bars1 = ax1.bar(x - width/2, best_counts, width, label='Best', 
                     color=[colors.get(m, '#95E1D3') for m in models], alpha=0.9)
     bars2 = ax1.bar(x + width/2, avg_counts, width, 
@@ -199,7 +189,6 @@ def plot_dirt_mining_comparison(results: Dict[str, Any], output_dir: str):
     ax1.legend()
     ax1.grid(axis='y', alpha=0.3, linestyle='--')
     
-    # Add value labels
     for bars in [bars1, bars2]:
         for bar in bars:
             height = bar.get_height()
@@ -208,7 +197,6 @@ def plot_dirt_mining_comparison(results: Dict[str, Any], output_dir: str):
                         f'{height:.0f}',
                         ha='center', va='bottom', fontsize=9)
     
-    # Mining rate plot
     bars3 = ax2.bar(x, mining_rates, 
                     yerr=rate_stds,
                     color=[colors.get(m, '#95E1D3') for m in models], 
@@ -221,7 +209,6 @@ def plot_dirt_mining_comparison(results: Dict[str, Any], output_dir: str):
     ax2.set_xticklabels([m.upper() for m in models])
     ax2.grid(axis='y', alpha=0.3, linestyle='--')
     
-    # Add value labels
     for bar, rate in zip(bars3, mining_rates):
         height = bar.get_height()
         if height > 0:
@@ -236,10 +223,7 @@ def plot_dirt_mining_comparison(results: Dict[str, Any], output_dir: str):
     
     print(f"Saved dirt mining comparison to: {output_file}")
 
-
 def create_summary_table(results: Dict[str, Any], output_dir: str):
-    """Create a summary table in HTML format."""
-    
     html_content = """
     <html>
     <head>

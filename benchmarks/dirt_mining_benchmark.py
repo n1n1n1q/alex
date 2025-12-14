@@ -66,18 +66,18 @@ class BenchmarkResult:
             if t.get("completion_time") is not None
         ]
         if completion_times:
-            stats["avg_completion_time"] = np.mean(completion_times)
-            stats["std_completion_time"] = np.std(completion_times)
+            stats["avg_completion_time"] = float(np.mean(completion_times))
+            stats["std_completion_time"] = float(np.std(completion_times))
 
         steps = [t.get("steps") for t in self.trials if t.get("steps") is not None]
         if steps:
-            stats["avg_steps"] = np.mean(steps)
-            stats["std_steps"] = np.std(steps)
+            stats["avg_steps"] = float(np.mean(steps))
+            stats["std_steps"] = float(np.std(steps))
 
         dirt_mined = [t.get("dirt_mined", 0) for t in self.trials]
         if dirt_mined:
-            stats["avg_dirt_mined"] = np.mean(dirt_mined)
-            stats["std_dirt_mined"] = np.std(dirt_mined)
+            stats["avg_dirt_mined"] = float(np.mean(dirt_mined))
+            stats["std_dirt_mined"] = float(np.std(dirt_mined))
             stats["total_dirt_mined"] = sum(dirt_mined)
 
         return stats
@@ -228,7 +228,7 @@ class STEVEDirtMiningCallback(DirtMiningBenchmarkCallback):
         if "condition" not in obs:
             obs["condition"] = {}
         obs["condition"]["text"] = self.command
-        obs["condition"]["cond_scale"] = 6.0
+        obs["condition"]["cond_scale"] = 10.0
 
         print(f"[STEVE-1] Command: '{self.command}'")
         return obs, info
@@ -241,7 +241,7 @@ class STEVEDirtMiningCallback(DirtMiningBenchmarkCallback):
         if "condition" not in obs:
             obs["condition"] = {}
         obs["condition"]["text"] = self.command
-        obs["condition"]["cond_scale"] = 6.0
+        obs["condition"]["cond_scale"] = 10.0
 
         return obs, reward, terminated, truncated, info
 
@@ -283,7 +283,7 @@ class ALEXDirtMiningCallback(DirtMiningBenchmarkCallback):
         if "condition" not in obs:
             obs["condition"] = {}
         obs["condition"]["text"] = self.current_command
-        obs["condition"]["cond_scale"] = 6.0
+        obs["condition"]["cond_scale"] = 10.0
 
         return obs, info
 
@@ -313,7 +313,7 @@ class ALEXDirtMiningCallback(DirtMiningBenchmarkCallback):
         if "condition" not in obs:
             obs["condition"] = {}
         obs["condition"]["text"] = self.current_command
-        obs["condition"]["cond_scale"] = 6.0
+        obs["condition"]["cond_scale"] = 10.0
 
         return obs, reward, terminated, truncated, info
 

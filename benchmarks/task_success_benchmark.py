@@ -93,17 +93,17 @@ class BenchmarkResult:
             if t.get("completion_time") is not None
         ]
         if completion_times:
-            stats["avg_completion_time"] = np.mean(completion_times)
-            stats["std_completion_time"] = np.std(completion_times)
-            stats["min_completion_time"] = np.min(completion_times)
-            stats["max_completion_time"] = np.max(completion_times)
+            stats["avg_completion_time"] = float(np.mean(completion_times))
+            stats["std_completion_time"] = float(np.std(completion_times))
+            stats["min_completion_time"] = float(np.min(completion_times))
+            stats["max_completion_time"] = float(np.max(completion_times))
 
         steps = [t.get("steps") for t in self.trials if t.get("steps") is not None]
         if steps:
-            stats["avg_steps"] = np.mean(steps)
-            stats["std_steps"] = np.std(steps)
-            stats["min_steps"] = np.min(steps)
-            stats["max_steps"] = np.max(steps)
+            stats["avg_steps"] = float(np.mean(steps))
+            stats["std_steps"] = float(np.std(steps))
+            stats["min_steps"] = int(np.min(steps))
+            stats["max_steps"] = int(np.max(steps))
 
         return stats
 
@@ -210,7 +210,7 @@ class STEVEBenchmarkCallback(TaskSuccessBenchmarkCallback):
 
     def _get_task_command(self, task_name: str) -> str:
         commands = {
-            "crafting_table": "chop trees and craft a crafting table",
+            "crafting_table": "collect wood and then make crafting table",
             "stone_axe": "gather resources and craft a stone axe",
             "iron_ore": "mine underground and find iron ore",
         }
@@ -222,15 +222,12 @@ class STEVEBenchmarkCallback(TaskSuccessBenchmarkCallback):
         if "condition" not in obs:
             obs["condition"] = {}
         obs["condition"]["text"] = self.current_command
-        obs["condition"]["cond_scale"] = 6.0
+        obs["condition"]["cond_scale"] = 10.0
 
         print(f"[STEVE-1] Command: '{self.current_command}'")
         return obs, info
 
     def after_step(self, sim, obs, reward, terminated, truncated, info):
-        if self.current_step % self.update_interval == 0 and self.current_step > 0:
-            progress = self.checker.get_progress(info)
-
         obs, reward, terminated, truncated, info = super().after_step(
             sim, obs, reward, terminated, truncated, info
         )
@@ -238,7 +235,7 @@ class STEVEBenchmarkCallback(TaskSuccessBenchmarkCallback):
         if "condition" not in obs:
             obs["condition"] = {}
         obs["condition"]["text"] = self.current_command
-        obs["condition"]["cond_scale"] = 6.0
+        obs["condition"]["cond_scale"] = 10.0
 
         return obs, reward, terminated, truncated, info
 
@@ -277,7 +274,7 @@ class ALEXBenchmarkCallback(TaskSuccessBenchmarkCallback):
         if "condition" not in obs:
             obs["condition"] = {}
         obs["condition"]["text"] = self.current_command
-        obs["condition"]["cond_scale"] = 6.0
+        obs["condition"]["cond_scale"] = 10.0
 
         return obs, info
 
@@ -307,7 +304,7 @@ class ALEXBenchmarkCallback(TaskSuccessBenchmarkCallback):
         if "condition" not in obs:
             obs["condition"] = {}
         obs["condition"]["text"] = self.current_command
-        obs["condition"]["cond_scale"] = 6.0
+        obs["condition"]["cond_scale"] = 10.0
 
         return obs, reward, terminated, truncated, info
 

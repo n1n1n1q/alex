@@ -48,17 +48,17 @@ class BenchmarkResult:
             if t.get("completion_time") is not None
         ]
         if completion_times:
-            stats["avg_completion_time"] = np.mean(completion_times)
-            stats["std_completion_time"] = np.std(completion_times)
-            stats["min_completion_time"] = np.min(completion_times)
-            stats["max_completion_time"] = np.max(completion_times)
+            stats["avg_completion_time"] = float(np.mean(completion_times))
+            stats["std_completion_time"] = float(np.std(completion_times))
+            stats["min_completion_time"] = float(np.min(completion_times))
+            stats["max_completion_time"] = float(np.max(completion_times))
 
         steps = [t.get("steps") for t in self.trials if t.get("steps") is not None]
         if steps:
-            stats["avg_steps"] = np.mean(steps)
-            stats["std_steps"] = np.std(steps)
-            stats["min_steps"] = np.min(steps)
-            stats["max_steps"] = np.max(steps)
+            stats["avg_steps"] = float(np.mean(steps))
+            stats["std_steps"] = float(np.std(steps))
+            stats["min_steps"] = int(np.min(steps))
+            stats["max_steps"] = int(np.max(steps))
 
         return stats
 

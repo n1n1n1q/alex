@@ -13,8 +13,9 @@ general:
 
 tasks:
   crafting_table:
-    trials: 10
-    max_steps: 6000
+    trials: 1
+    max_steps: 1000
+    seed: 42
     description: "Craft a crafting table from scratch"
   
   stone_axe:

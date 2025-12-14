@@ -14,18 +14,6 @@ git clone --recursive https://github.com/n1n1n1q/alex.git
 cd alex
 ``` 
 
-Install submodules:
-```bash
-cd alex
-pip install -e submodules/MineStudio 
-pip install -e submodules/MineCLIP
-```
-
-Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
 Download MineCLIP weights ([avg.pth](https://drive.google.com/file/d/1mFe09JsVS5FpZ82yuV7fYNFYnkz9jDqr/view) or [attn.pth](https://drive.google.com/file/d/1uaZM1ZLBz2dZWcn85rZmjP7LV6Sg5PZW/view)) and place them in `models/` directory.
 
 Download the MineDojo Wiki dataset:
@@ -35,19 +23,19 @@ wget -c --show-progress "https://zenodo.org/record/6640448/files/wiki_samples.zi
 unzip data/wiki_samples.zip -d data && rm data/wiki_samples.zip
 ```
 
+Put WANDB_API_KEY into `.env` file.
+
 ## Environment setup
 
 ### Docker setup
 
-1. Build docker with   
+Build docker with   
 ```bash
 chmod +x docker/build.sh
 ./docker/build.sh
 ```
 
-2. Put WANDB_API_KEY into `.env` file
-
-3. Run the environment with
+Run the environment with
   
 ```bash
 chmod +x docker/run.sh
@@ -74,4 +62,18 @@ conda install --channel=conda-forge openjdk=8 -y
 
 ```bash
 chmod +x install_macos.sh
+```
+
+After setting up your appropriate environment, install submodules:
+
+```bash
+cd alex
+pip install -e submodules/MineStudio 
+pip install -e submodules/MineCLIP
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
 ```

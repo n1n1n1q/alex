@@ -77,3 +77,22 @@ Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
+
+## References
+
+- [MineStudio](https://github.com/CraftJarvis/MineStudio)
+- [MineCLIP](https://github.com/MineDojo/MineCLIP)
+- [MineDojo](https://github.com/MineDojo/MineDojo)
+- [STEVE-1](https://github.com/Shalev-Lifshitz/STEVE-1)
+- [VPT](https://github.com/openai/Video-Pre-Training)
+- [MineRL](https://github.com/minerllabs/minerl)
+- [Malmo](https://github.com/microsoft/malmo)
+
+## Contributors
+
+- [Oleh Basystyi](github.com/n1n1n1q)
+- [Anna Stasyshyn](github.com/annastasyshyn)
+- [Maksym Zhuk](github.com/Zhukowych)
+- [Zakhar Tepliakov](github.com/xpxzpvck)
+- [Danyil Ikonnikov](github.com/Danylo-Ik)
+- [Bozhena Sai](https://github.com/BozhenaSai)

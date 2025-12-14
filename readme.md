@@ -2,6 +2,8 @@
 
 ALEX is a Minecraft AI agent that combines reinforcement learning (RL) for micro-level tasks and large language models (LLMs) for macro-level decision-making. ALEX utilizes the strengths of both approaches to navigate and interact with the complex Minecraft environment effectively.
 
+<img src="assets/diagram.png" alt="ALEX Diagram" width="600"/>
+
 ## Features
 
 ## Prerequisites and installation

@@ -7,7 +7,7 @@ from alex.rag.retriever import WikiRetriever
 
 def main():
     print("--- 1. Initializing Retriever ---")
-    # This should trigger the download and indexing (first time only)
+    # ...existing code...
     retriever = WikiRetriever()
     
     if not retriever.use_vector_db:

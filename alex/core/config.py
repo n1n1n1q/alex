@@ -61,7 +61,7 @@ class AlexConfig:
                 default_path if os.path.exists(default_path) else None
             )
 
-        return cls(**cfg_dict)  # type: ignore[arg-type]
+        return cls(**cfg_dict)
 
     def validate(self) -> list[str]:
         issues = []

@@ -36,16 +36,16 @@ class SpatialAttentionMap:
             ]
         )
 
-        self.grid_rows = self.img_height // self.patch_size  # 10
+        self.grid_rows = self.img_height // self.patch_size
         self.grid_cols = self.img_width // self.patch_size
 
         self.semantic_grid_size = 4
 
         self.depth_zones = {
-            "Sky/Ceiling": (0, 2),  # Top rows 0-2
-            "Horizon/Far": (3, 5),  # Middle-top rows 3-5
-            "Ground/Mid": (6, 7),  # Middle-bottom rows 6-7
-            "Feet/Close": (8, 9),  # Bottom rows 8-9
+            "Sky/Ceiling": (0, 2),
+            "Horizon/Far": (3, 5),
+            "Ground/Mid": (6, 7),
+            "Feet/Close": (8, 9),
         }
 
         self.horizontal_zones = {
@@ -68,28 +68,28 @@ class SpatialAttentionMap:
 
             vision_model = self.model.image_encoder
 
-            x = vision_model.conv1(image)  # [batch, width, grid_h, grid_w]
+            x = vision_model.conv1(image)
             B = x.size(0)
-            x = x.reshape(B, x.shape[1], -1)  # [batch, width, grid_h * grid_w]
-            x = x.permute(0, 2, 1)  # [batch, num_patches, width]
+            x = x.reshape(B, x.shape[1], -1)
+            x = x.permute(0, 2, 1)
 
-            # Add CLS token and positional embeddings
+            # ...existing code...
             x = torch.cat(
                 [vision_model.cls_token.repeat((B, 1, 1)), x], dim=1
-            )  # [batch, num_patches + 1, width]
+            )
             x = x + vision_model.pos_embed
 
             x = vision_model.ln_pre(x)
-            x = x.permute(1, 0, 2)  # NLD -> LND (for transformer)
+            x = x.permute(1, 0, 2)
             x = vision_model.blocks(x)
-            x = x.permute(1, 0, 2)  # LND -> NLD
+            x = x.permute(1, 0, 2)
 
-            # Apply layer norm (but don't apply final projection yet)
+            # ...existing code...
             x = vision_model.ln_post(x)
 
-            patch_embeddings = x[:, 1:, :]  # [batch, num_patches, width]
+            patch_embeddings = x[:, 1:, :]
 
-            # Project to output dimension (512) to match text embedding space
+            # ...existing code...
             if vision_model.projection is not None:
                 patch_embeddings = patch_embeddings @ vision_model.projection
 
@@ -126,17 +126,17 @@ class SpatialAttentionMap:
         grid_4x4 = torch.zeros(4, 4, device=similarity_map.device)
 
         depth_ranges = [
-            (0, 3),  # Sky/Ceiling
-            (3, 6),  # Horizon/Far
-            (6, 8),  # Ground/Mid
-            (8, 10),  # Feet/Close
+            (0, 3),
+            (3, 6),
+            (6, 8),
+            (8, 10),
         ]
 
         horiz_ranges = [
-            (0, 4),  # Left
-            (4, 8),  # Center-Left
-            (8, 12),  # Center-Right
-            (12, 16),  # Right
+            (0, 4),
+            (4, 8),
+            (8, 12),
+            (12, 16),
         ]
 
         for i, (row_start, row_end) in enumerate(depth_ranges):
@@ -360,7 +360,7 @@ def main():
 
     print("✓ Model loaded successfully")
 
-    # Create spatial attention system
+    # ...existing code...
     spatial_system = SpatialAttentionMap(mineclip, device=device)
 
     print(f"\nSpatial Grid Configuration:")
@@ -390,12 +390,12 @@ def main():
         print(result["description"])
         return
 
-    # Get list of image files
+    # ...existing code...
     image_files = list(images_dir.glob("*.png"))
 
-    # Define semantic queries for different scenarios
-    # Spatial queries: detect WHERE objects are located
-    # Global queries: detect WHAT type of scene/environment
+    # ...existing code...
+    # ...existing code...
+    # ...existing code...
     queries_by_scene = {
         "zombie": {
             "spatial": ["zombie", "skeleton", "creeper", "player hand", "weapon"],
@@ -453,7 +453,7 @@ def main():
         },
     }
 
-    # Analyze zombie image specifically with softmax for sharper detection
+    # ...existing code...
     zombie_images = [img for img in image_files if "zombie" in img.stem.lower()]
 
     if zombie_images:
@@ -486,7 +486,7 @@ def main():
                 global_queries=scene_queries["global"],
             )
 
-    # Summary
+    # ...existing code...
     print("\n" + "=" * 80)
     print("✓ Analysis completed successfully!")
     print("=" * 80)

@@ -10,7 +10,7 @@ try:
     from transformers import pipeline
 
     HF_AVAILABLE = True
-except ImportError:  # pragma: no cover - optional dependency
+except ImportError:
     HF_AVAILABLE = False
 
 from ..core.config import get_config
@@ -151,7 +151,7 @@ class HuggingFaceReflexManager:
 
             subgoal = self._action_to_subgoal(action, params, priority)
             return subgoal
-        except Exception as exc:  # pragma: no cover - defensive catch
+        except Exception as exc:
             if self.verbose:
                 print(
                     f"[ReflexManager] LLM reflex failed ({exc}); falling back to rule-based reflex."

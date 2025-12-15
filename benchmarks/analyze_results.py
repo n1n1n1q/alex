@@ -247,7 +247,7 @@ def create_summary_table(results: Dict[str, Any], output_dir: str):
     html_content += f"<h1>Minecraft Agent Benchmark Results</h1>\n"
     html_content += f"<p class='timestamp'>Generated: {results['timestamp']}</p>\n"
     
-    # Task success table
+    # ...existing code...
     html_content += "<h2>Task Success Rates</h2>\n"
     html_content += "<table>\n"
     html_content += "<tr><th>Task</th>"
@@ -281,7 +281,7 @@ def create_summary_table(results: Dict[str, Any], output_dir: str):
     
     html_content += "</table>\n"
     
-    # Dirt mining table
+    # ...existing code...
     html_content += "<h2>Dirt Mining Performance</h2>\n"
     html_content += "<table>\n"
     html_content += "<tr><th>Model</th><th>Best Dirt Count</th><th>Avg Dirt Count</th><th>Avg Mining Rate (dirt/s)</th></tr>\n"
@@ -305,7 +305,7 @@ def create_summary_table(results: Dict[str, Any], output_dir: str):
     
     html_content += "</table>\n"
     
-    # Add images
+    # ...existing code...
     html_content += "<h2>Visualizations</h2>\n"
     html_content += "<img src='task_success_comparison.png' alt='Task Success Comparison'>\n"
     html_content += "<img src='completion_time_comparison.png' alt='Completion Time Comparison'>\n"
@@ -333,13 +333,13 @@ def analyze_benchmark_results(results_dir: str):
     
     print(f"Found results for models: {results['models']}")
     
-    # Create visualizations
+    # ...existing code...
     print("\nGenerating visualizations...")
     plot_task_success_comparison(results, results_dir)
     plot_completion_time_comparison(results, results_dir)
     plot_dirt_mining_comparison(results, results_dir)
     
-    # Create summary table
+    # ...existing code...
     print("\nGenerating HTML summary...")
     create_summary_table(results, results_dir)
     

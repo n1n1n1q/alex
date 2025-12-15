@@ -3,7 +3,7 @@ import lightning as L
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.callbacks import LearningRateMonitor
 
-# below are MineStudio dependencies
+# ...existing code...
 from minestudio.data import EventDataModule
 from minestudio.data.minecraft.callbacks import (
     ImageKernelCallback,
@@ -61,11 +61,11 @@ mine_data = EventDataModule(
             ),
             ActionKernelCallback(),
         ],
-        win_len=32,  # Reduced from 128->64->32 to save memory
+        win_len=32,
         split_ratio=0.9,
         event_regex="minecraft.kill_entity:.*",
         bias=16,
-        min_nearby=32,  # Reduced from 64 to match win_len reduction
+        min_nearby=32,
     ),
     batch_size=1,
     num_workers=0,

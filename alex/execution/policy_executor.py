@@ -77,7 +77,7 @@ def execute_policy_skill(
 
             steve_prompt = (
                 request.name
-            )  # generator.generate_prompt(request.name, request.params)
+            )
 
             max_steps = 100
             if request.timeout_ms:

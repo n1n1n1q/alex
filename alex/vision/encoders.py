@@ -173,5 +173,5 @@ class MineCLIPEncoder:
         """
         image = self.transform(image)
         image_tensor = torch.from_numpy(np.array(image)).permute(2, 0, 1).float()
-        image_tensor = image_tensor.unsqueeze(0).to(self.device)  # [1, C, H, W]
+        image_tensor = image_tensor.unsqueeze(0).to(self.device)
         return image_tensor

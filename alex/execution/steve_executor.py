@@ -35,8 +35,8 @@ try:
     STEVE_AVAILABLE = True
 except ImportError:
     STEVE_AVAILABLE = False
-    MinecraftCallback = object  # type: ignore
-    SteveOnePolicy = None  # type: ignore
+    MinecraftCallback = object
+    SteveOnePolicy = None
 
 
 class CommandCallback(MinecraftCallback):
@@ -100,7 +100,7 @@ class SteveExecutor:
         self.model_path = model_path
         self.default_cond_scale = default_cond_scale
         self.default_max_steps = default_max_steps
-        self.policy = None  # SteveOnePolicy instance (loaded lazily)
+        self.policy = None
 
     def load_policy(self) -> None:
         """Lazy load STEVE-1 policy (heavy operation, call once)."""

@@ -329,7 +329,7 @@ def run_task_benchmark(
     print("=" * 80)
 
     if not ray.is_initialized():
-        # Add the parent directory to PYTHONPATH for all Ray workers
+        # ...existing code...
         parent_dir = str(Path(__file__).parent.parent)
         ray.init(
             runtime_env={

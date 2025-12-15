@@ -1,25 +1,24 @@
 #!/bin/bash
-# Script to run each benchmark individually for each model
-# This allows you to run specific combinations or resume interrupted benchmarks
+### ...existing code...
 
-set -e  # Exit on error
+set -e
 
-# Get the directory where this script is located
+### ...existing code...
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"  # Change to benchmarks directory
 
-# Default configuration file
+### ...existing code...
 DEFAULT_CONFIG="benchmark_config.yaml"
 CONFIG_FILE=""
 
-# Colors
+### ...existing code...
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Function to run a task success benchmark
+### ...existing code...
 run_task_benchmark() {
     local model=$1
     local task=$2
@@ -43,7 +42,7 @@ run_task_benchmark() {
     echo ""
 }
 
-# Function to run dirt mining benchmark
+### ...existing code...
 run_dirt_benchmark() {
     local model=$1
     
@@ -65,7 +64,7 @@ run_dirt_benchmark() {
     echo ""
 }
 
-# Parse command line arguments
+### ...existing code...
 SELECTED_MODELS=("${MODELS[@]}")
 SELECTED_TASKS=("${TASKS[@]}")
 RUN_DIRT=true
@@ -118,16 +117,16 @@ while [[ $# -gt 0 ]]; do
             echo "  --help, -h                  Show this help message"
             echo ""
             echo "Examples:"
-            echo "  # Run only ALEX on crafting table"
+            ### ...existing code...
             echo "  $0 --models alex --tasks crafting_table"
             echo ""
-            echo "  # Run with custom config"
+            ### ...existing code...
             echo "  $0 --config my_config.yaml --models steve alex"
             echo ""
-            echo "  # Run only dirt mining for all models"
+            ### ...existing code...
             echo "  $0 --only-dirt"
             echo ""
-            echo "  # Run VPT and STEVE on all tasks"
+            ### ...existing code...
             echo "  $0 --models vpt steve"
             echo ""
             exit 0
@@ -140,18 +139,18 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Use default config if not specified
+### ...existing code...
 if [ -z "$CONFIG_FILE" ]; then
     CONFIG_FILE="$DEFAULT_CONFIG"
 fi
 
-# Check if config file exists
+### ...existing code...
 if [ ! -f "$CONFIG_FILE" ]; then
     echo -e "${RED}Error: Configuration file '$CONFIG_FILE' not found${NC}"
     exit 1
 fi
 
-# Load configuration using Python
+### ...existing code...
 CONFIG_INFO=$(python3 -c "
 from benchmark_config import BenchmarkConfig
 import yaml
@@ -160,11 +159,11 @@ print(f\"{config.get_output_dir()}\")
 print(f\"{config.get_device()}\")
 ")
 
-# Parse config info
+### ...existing code...
 OUTPUT_DIR=$(echo "$CONFIG_INFO" | sed -n '1p')
 DEVICE=$(echo "$CONFIG_INFO" | sed -n '2p')
 
-# Task list (will be filtered by command-line args)
+### ...existing code...
 TASKS=("crafting_table" "stone_axe" "iron_ore")
 MODELS=("vpt" "steve" "alex")
 
@@ -179,7 +178,7 @@ echo ""
 echo "Note: Task-specific trials and max_steps are defined in $CONFIG_FILE"
 echo ""
 
-# Create output directory
+### ...existing code...
 mkdir -p "$OUTPUT_DIR"
 
 echo -e "${BLUE}Will run benchmarks for:${NC}"
@@ -199,7 +198,7 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
-# Track progress
+### ...existing code...
 TOTAL_BENCHMARKS=$((${#SELECTED_MODELS[@]} * ${#SELECTED_TASKS[@]}))
 if [ "$RUN_DIRT" = true ]; then
     TOTAL_BENCHMARKS=$((TOTAL_BENCHMARKS + ${#SELECTED_MODELS[@]}))
@@ -209,7 +208,7 @@ COMPLETED=0
 FAILED=0
 START_TIME=$(date +%s)
 
-# Run task success benchmarks
+### ...existing code...
 if [ ${#SELECTED_TASKS[@]} -gt 0 ]; then
     echo -e "${BLUE}========================================${NC}"
     echo -e "${BLUE}TASK SUCCESS BENCHMARKS${NC}"
@@ -231,7 +230,7 @@ if [ ${#SELECTED_TASKS[@]} -gt 0 ]; then
     done
 fi
 
-# Run dirt mining benchmarks
+### ...existing code...
 if [ "$RUN_DIRT" = true ]; then
     echo -e "${BLUE}========================================${NC}"
     echo -e "${BLUE}DIRT MINING BENCHMARKS${NC}"
@@ -251,7 +250,7 @@ if [ "$RUN_DIRT" = true ]; then
     done
 fi
 
-# Summary
+### ...existing code...
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
 HOURS=$((DURATION / 3600))

@@ -15,8 +15,7 @@ class WikiRetriever:
         )
 
         repo_root = "/datasets/maksymz/alex/alex/rag"
-        # Using full=False downloads 'wiki_samples' (smaller) for testing. 
-        # Set full=True for the complete wiki.
+        # ...existing code...
         self.dataset = WikiDataset(
             download_dir=os.path.join(repo_root, "data"),
             full=True
@@ -28,29 +27,28 @@ class WikiRetriever:
     def _setup_vector_db(self):
         try:
             import chromadb
-            # Using basic ChromaDB Client (in-memory/ephemeral for now)
+            # ...existing code...
             client = chromadb.Client()
             self.collection = client.get_or_create_collection("minecraft_knowledge")
             
-            # If empty, populate index
+            # ...existing code...
             if self.collection.count() == 0:
                 print("[RAG] Building Index (this may take a moment)...")
                 ids = []
                 documents = []
                 metadatas = []
                 
-                # Index first 200 articles for performance testing
-                # Remove the [:200] slice to index everything
+                # ...existing code...
                 for i in range(min(len(self.dataset), 200)):
                     try:
                         item = self.dataset[i]
-                        # Flatten 'texts' list into single string
+                        # ...existing code...
                         full_text = " ".join([t['text'] for t in item.get('texts', [])])
                         
-                        # Only index if text is substantial
+                        # ...existing code...
                         if len(full_text) > 50:
                             ids.append(f"doc_{i}")
-                            # Truncate to 1000 chars for context window management
+                            # ...existing code...
                             documents.append(full_text[:1000])
                             metadatas.append({"source": "minedojo_wiki"})
                     except Exception as e:
@@ -78,7 +76,7 @@ class WikiRetriever:
                     query_texts=[query],
                     n_results=k
                 )
-                # Chroma returns a list of lists (one per query)
+                # ...existing code...
                 return results['documents'][0]
             except Exception as e:
                 print(f"[RAG Error] {e}")

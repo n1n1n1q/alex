@@ -182,7 +182,7 @@ class AlexAgentCallback(MinecraftCallback):
         response_entry = {
             "step": step,
             "phase": phase,
-            "response_type": response_type,  # 'planner' or 'reflex'
+            "response_type": response_type,
             "timestamp": datetime.now().isoformat(),
             "response": response_data,
         }

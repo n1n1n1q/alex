@@ -88,10 +88,10 @@ class HuggingFacePlanner(BasePlanner):
         """Convert numpy arrays and other non-serializable types to Python native types"""
         if isinstance(obj, np.ndarray):
             if obj.size == 1:
-                return obj.item()  # Convert single-element array to scalar
-            return obj.tolist()  # Convert multi-element array to list
+                return obj.item()
+            return obj.tolist()
         elif isinstance(obj, (np.integer, np.floating)):
-            return obj.item()  # Convert numpy scalar to Python scalar
+            return obj.item()
         elif isinstance(obj, dict):
             return {k: self._convert_to_serializable(v) for k, v in obj.items()}
         elif isinstance(obj, (list, tuple)):

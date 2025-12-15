@@ -6,7 +6,7 @@ from .few_shot_prompts import FEW_SHOT_EXAMPLES
 
 try:
     from alex.rag.retriever import WikiRetriever
-    # Initialize once globally to avoid reloading/indexing on every request
+    # ...existing code...
     retriever = None 
 except Exception as e:
     import traceback
@@ -92,27 +92,27 @@ def plan_actions(game_state: dict) -> str:
 
         if "mobs" in game_state:
             unique_mobs = set()
-            for mob in game_state["mobs"]: # Check nearest mob
+            for mob in game_state["mobs"]:
                 if mob["name"] not in unique_mobs:
                     unique_mobs.add(mob["name"])
                     search_queries.append(f"{mob['name']} information and drops")
 
         if "inventory" in game_state:
             unique_items = set()
-            for item in game_state["inventory"][:3]: # Check top 3 items
+            for item in game_state["inventory"][:3]:
                 if item["name"] not in unique_items:
                     unique_items.add(item["name"])
                     search_queries.append(f"{item['name']} usage")
 
         print(f"[RAG] Planning prompt queries: {search_queries}", file=sys.stderr)
 
-    # Execute Search
+    # ...existing code...
         wiki_context = []
         for q in search_queries:
             results = retriever.retrieve(q, k=1)
             wiki_context.extend(results)
             
-        # Inject into Prompt
+        # ...existing code...
         if wiki_context:
             prompt += "=== WIKI KNOWLEDGE (Context) ===\n"
             for info in wiki_context:

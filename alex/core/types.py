@@ -73,6 +73,6 @@ class SkillRequest:
 
 @dataclass
 class SkillResult:
-    status: str  # OK | FAILED | PENDING_POLICY
+    status: str
     info: Dict[str, Any] = field(default_factory=dict)
     low_level_actions: Optional[List[Dict[str, Any]]] = None

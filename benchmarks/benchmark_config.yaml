@@ -1,0 +1,36 @@
+models:
+  vpt:
+    path: "CraftJarvis/MineStudio_VPT.bc_early_game_3x"
+    weights: ""
+  steve:
+    path: "CraftJarvis/MineStudio_STEVE-1.official"
+  alex:
+    path: "CraftJarvis/MineStudio_STEVE-1.official"
+
+general:
+  output_dir: "./benchmark_results"
+  device: "cuda"
+
+tasks:
+  crafting_table:
+    trials: 1
+    max_steps: 1000
+    seed: 42
+    description: "Craft a crafting table from scratch"
+  
+  stone_axe:
+    trials: 10
+    max_steps: 8000
+    description: "Craft a stone axe (requires wood, crafting table, and cobblestone)"
+  
+  iron_ore:
+    trials: 10
+    max_steps: 12000
+    description: "Find and mine iron ore"
+
+dirt_mining:
+  trials: 1
+  max_steps: 1000
+  description: "Mine dirt blocks to measure basic mining efficiency"
+
+overrides:

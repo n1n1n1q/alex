@@ -27,19 +27,15 @@ if $RESET_CONTAINER; then
     docker rm -f ${CONTAINER_NAME} >/dev/null 2>&1 || true
 fi
 
-xhost +local:docker
+#xhost +local:docker
 
 docker run -it --rm \
     --gpus all \
     --cpus ${CPU} \
     --ipc=host \
     --name ${CONTAINER_NAME} \
-    -p 8888:8888 \
-    -p 6006:6006 \
-    -p 9899:9899 \
     -v ${REPO_ROOT}:/alex \
     -e DISPLAY=$DISPLAY \
-    -v /tmp/.X11-unix:/tmp/.X11-unix \
     -w /alex \
     --user root \
     --memory ${MEMORY} \

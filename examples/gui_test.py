@@ -1,10 +1,7 @@
 from minestudio.simulator import MinecraftSim
 from minestudio.simulator.callbacks import PlayCallback
 
-sim = MinecraftSim(
-    action_type="env",
-    callbacks=[PlayCallback()]
-)
+sim = MinecraftSim(action_type="env", callbacks=[PlayCallback()])
 
 obs, info = sim.reset()
 terminated, truncated = False, False
